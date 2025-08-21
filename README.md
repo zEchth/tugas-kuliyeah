@@ -3,4 +3,4 @@
 
 Tugas ini dibuat karena *dipaksa*
 
-dibuat karena aku juga **ingin** ngoding
+dibuat karena aku juga **ingin** ngoding mobile
