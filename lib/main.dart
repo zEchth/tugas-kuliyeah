@@ -1,7 +1,8 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tugas_kuliyeah/features/mata_kuliah/add_mata_kuliah_screen.dart';
+import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_mata_kuliah_screen.dart';
+import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_list_screen.dart';
 
 
 void main() {
@@ -26,7 +27,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData.dark(
         useMaterial3: true,
       ),
-      home: AddMataKuliahScreen(),
+      debugShowCheckedModeBanner: false,
+      home: MataKuliahListScreen(),
     );
   }
 }
