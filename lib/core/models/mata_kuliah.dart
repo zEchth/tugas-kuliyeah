@@ -1,3 +1,4 @@
+// lib/core/models/mata_kuliah.dart
 class MataKuliah {
   final String id;
   final String nama;

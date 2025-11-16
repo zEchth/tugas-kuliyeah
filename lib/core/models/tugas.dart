@@ -1,5 +1,5 @@
+// lib/core/models/tugas.dart
 // Ini untuk dikerja pengerja fitur Tambah Tugas/Kuis/UTS/UAS (bisa dirombak)
-
 class Tugas {
   final String id;
   final String mataKuliahId; // Kunci penghubung

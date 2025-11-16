@@ -1,3 +1,4 @@
+// lib/core/models/jadwal.dart
 class Jadwal {
   final String id;
   final String mataKuliahId; // Kunci penghubung

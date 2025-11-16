@@ -1,3 +1,4 @@
+// lib/core/repositories/task_repository.dart
 import 'package:tugas_kuliyeah/core/models/jadwal.dart';
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart';
 import 'package:tugas_kuliyeah/core/models/tugas.dart';
@@ -11,13 +12,15 @@ abstract class TaskRepository {
   Future<List<Jadwal>> getJadwalByMataKuliah(String mataKuliahId);
 
   // -- Untuk dikerja oleh pengerja Fitur Tambah Tugas/Kuis/UTS/UAS (bisa dirombak) --
-  Future<void> addTugas(Tugas tugas);
-  Future<List<Tugas>> getAllTugas();
+  // Future<void> addTugas(Tugas tugas);
+  // Future<List<Tugas>> getAllTugas();
 
   // -- Untuk dikerja pengerja Fitur Tambah Detail Tugas (bisa dirombak) -- 
-  Future<void> addDetailTugas(String tugasId, String filePath);
+  // Future<void> addDetailTugas(String tugasId, String filePath);
 
   // -- untuk dikerja pengerja Fitur Reminder Tugas, Jam Kuliah, & Ruangan
-  Future<List<Tugas>> getTugasMendatang();
-  Future<List<Jadwal>> getJadwalHariIni();
+  // Future<List<Tugas>> getTugasMendatang();
+  // Future<List<Jadwal>> getJadwalHariIni();
+
+  // -- Fitur-fitur lain
 }
