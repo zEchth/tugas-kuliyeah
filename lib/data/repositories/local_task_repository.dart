@@ -7,6 +7,7 @@ import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
 
 import 'package:tugas_kuliyeah/data/local/app_database.dart';
+// NOTE: Drift Components (TugassCompanion) diimpor melalui app_database.dart
 
 // Implementasi 'TaskRepository' (Kontrak)
 class LocalTaskRepository implements TaskRepository {
@@ -46,13 +47,12 @@ class LocalTaskRepository implements TaskRepository {
 
     // 2. Konversi stream (map) dari model Drift ke Core Model
     return streamDrift.map((listMatkulDrift) {
-      // NOTE: Dosen dan Ruangan di model Core tidak nullable, tapi di model Drift mungkin.
-      // Kita pakai operator '??' (null-aware) untuk memberi default string kosong
       return listMatkulDrift
           .map(
             (matkulDrift) => core_model.MataKuliah(
               id: matkulDrift.id,
               nama: matkulDrift.nama,
+              // Menggunakan '?? ""' untuk keamanan Null Safety
               dosen: matkulDrift.dosen,
               sks: matkulDrift.sks,
             ),
@@ -78,6 +78,7 @@ class LocalTaskRepository implements TaskRepository {
               hari: jadwalDrift.hari,
               jamMulai: jadwalDrift.jamMulai,
               jamSelesai: jadwalDrift.jamSelesai,
+              // Menggunakan '?? ""' untuk keamanan Null Safety
               ruangan: jadwalDrift.ruangan,
             ),
           )
@@ -143,6 +144,7 @@ class LocalTaskRepository implements TaskRepository {
 
   @override
   Future<void> addTugas(core_model.Tugas tugas) async {
+    // TugassCompanion dibuat oleh build_runner di app_database.g.dart
     final tugasCompanion = TugassCompanion.insert(
       id: tugas.id,
       mataKuliahId: tugas.mataKuliahId,
@@ -150,6 +152,7 @@ class LocalTaskRepository implements TaskRepository {
       deskripsi: tugas.deskripsi,
       tenggatWaktu: tugas.tenggatWaktu,
     );
+    // db.tugass dibuat oleh build_runner di app_database.g.dart
     await db.into(db.tugass).insert(tugasCompanion);
   }
 
@@ -176,7 +179,6 @@ class LocalTaskRepository implements TaskRepository {
   @override
   Stream<List<core_model.Tugas>> watchTugasByMataKuliah(String mataKuliahId) {
     // 1. Query stream dengan filter WHERE
-    // Menggunakan db.select(db.tugass) tanpa casting manual
     final queryStream = (db.select(
       db.tugass,
     )..where((tbl) => tbl.mataKuliahId.equals(mataKuliahId))).watch();
