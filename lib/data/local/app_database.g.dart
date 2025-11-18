@@ -728,16 +728,394 @@ class JadwalsCompanion extends UpdateCompanion<Jadwal> {
   }
 }
 
+class $TugassTable extends Tugass with TableInfo<$TugassTable, TugassData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TugassTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mataKuliahIdMeta = const VerificationMeta(
+    'mataKuliahId',
+  );
+  @override
+  late final GeneratedColumn<String> mataKuliahId = GeneratedColumn<String>(
+    'mata_kuliah_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES mata_kuliahs (id)',
+    ),
+  );
+  static const VerificationMeta _jenisMeta = const VerificationMeta('jenis');
+  @override
+  late final GeneratedColumn<String> jenis = GeneratedColumn<String>(
+    'jenis',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deskripsiMeta = const VerificationMeta(
+    'deskripsi',
+  );
+  @override
+  late final GeneratedColumn<String> deskripsi = GeneratedColumn<String>(
+    'deskripsi',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tenggatWaktuMeta = const VerificationMeta(
+    'tenggatWaktu',
+  );
+  @override
+  late final GeneratedColumn<DateTime> tenggatWaktu = GeneratedColumn<DateTime>(
+    'tenggat_waktu',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    mataKuliahId,
+    jenis,
+    deskripsi,
+    tenggatWaktu,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tugass';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TugassData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('mata_kuliah_id')) {
+      context.handle(
+        _mataKuliahIdMeta,
+        mataKuliahId.isAcceptableOrUnknown(
+          data['mata_kuliah_id']!,
+          _mataKuliahIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_mataKuliahIdMeta);
+    }
+    if (data.containsKey('jenis')) {
+      context.handle(
+        _jenisMeta,
+        jenis.isAcceptableOrUnknown(data['jenis']!, _jenisMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_jenisMeta);
+    }
+    if (data.containsKey('deskripsi')) {
+      context.handle(
+        _deskripsiMeta,
+        deskripsi.isAcceptableOrUnknown(data['deskripsi']!, _deskripsiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deskripsiMeta);
+    }
+    if (data.containsKey('tenggat_waktu')) {
+      context.handle(
+        _tenggatWaktuMeta,
+        tenggatWaktu.isAcceptableOrUnknown(
+          data['tenggat_waktu']!,
+          _tenggatWaktuMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_tenggatWaktuMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TugassData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TugassData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      mataKuliahId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mata_kuliah_id'],
+      )!,
+      jenis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}jenis'],
+      )!,
+      deskripsi: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}deskripsi'],
+      )!,
+      tenggatWaktu: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}tenggat_waktu'],
+      )!,
+    );
+  }
+
+  @override
+  $TugassTable createAlias(String alias) {
+    return $TugassTable(attachedDatabase, alias);
+  }
+}
+
+class TugassData extends DataClass implements Insertable<TugassData> {
+  final String id;
+  final String mataKuliahId;
+  final String jenis;
+  final String deskripsi;
+  final DateTime tenggatWaktu;
+  const TugassData({
+    required this.id,
+    required this.mataKuliahId,
+    required this.jenis,
+    required this.deskripsi,
+    required this.tenggatWaktu,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['mata_kuliah_id'] = Variable<String>(mataKuliahId);
+    map['jenis'] = Variable<String>(jenis);
+    map['deskripsi'] = Variable<String>(deskripsi);
+    map['tenggat_waktu'] = Variable<DateTime>(tenggatWaktu);
+    return map;
+  }
+
+  TugassCompanion toCompanion(bool nullToAbsent) {
+    return TugassCompanion(
+      id: Value(id),
+      mataKuliahId: Value(mataKuliahId),
+      jenis: Value(jenis),
+      deskripsi: Value(deskripsi),
+      tenggatWaktu: Value(tenggatWaktu),
+    );
+  }
+
+  factory TugassData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TugassData(
+      id: serializer.fromJson<String>(json['id']),
+      mataKuliahId: serializer.fromJson<String>(json['mataKuliahId']),
+      jenis: serializer.fromJson<String>(json['jenis']),
+      deskripsi: serializer.fromJson<String>(json['deskripsi']),
+      tenggatWaktu: serializer.fromJson<DateTime>(json['tenggatWaktu']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'mataKuliahId': serializer.toJson<String>(mataKuliahId),
+      'jenis': serializer.toJson<String>(jenis),
+      'deskripsi': serializer.toJson<String>(deskripsi),
+      'tenggatWaktu': serializer.toJson<DateTime>(tenggatWaktu),
+    };
+  }
+
+  TugassData copyWith({
+    String? id,
+    String? mataKuliahId,
+    String? jenis,
+    String? deskripsi,
+    DateTime? tenggatWaktu,
+  }) => TugassData(
+    id: id ?? this.id,
+    mataKuliahId: mataKuliahId ?? this.mataKuliahId,
+    jenis: jenis ?? this.jenis,
+    deskripsi: deskripsi ?? this.deskripsi,
+    tenggatWaktu: tenggatWaktu ?? this.tenggatWaktu,
+  );
+  TugassData copyWithCompanion(TugassCompanion data) {
+    return TugassData(
+      id: data.id.present ? data.id.value : this.id,
+      mataKuliahId: data.mataKuliahId.present
+          ? data.mataKuliahId.value
+          : this.mataKuliahId,
+      jenis: data.jenis.present ? data.jenis.value : this.jenis,
+      deskripsi: data.deskripsi.present ? data.deskripsi.value : this.deskripsi,
+      tenggatWaktu: data.tenggatWaktu.present
+          ? data.tenggatWaktu.value
+          : this.tenggatWaktu,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TugassData(')
+          ..write('id: $id, ')
+          ..write('mataKuliahId: $mataKuliahId, ')
+          ..write('jenis: $jenis, ')
+          ..write('deskripsi: $deskripsi, ')
+          ..write('tenggatWaktu: $tenggatWaktu')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, mataKuliahId, jenis, deskripsi, tenggatWaktu);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TugassData &&
+          other.id == this.id &&
+          other.mataKuliahId == this.mataKuliahId &&
+          other.jenis == this.jenis &&
+          other.deskripsi == this.deskripsi &&
+          other.tenggatWaktu == this.tenggatWaktu);
+}
+
+class TugassCompanion extends UpdateCompanion<TugassData> {
+  final Value<String> id;
+  final Value<String> mataKuliahId;
+  final Value<String> jenis;
+  final Value<String> deskripsi;
+  final Value<DateTime> tenggatWaktu;
+  final Value<int> rowid;
+  const TugassCompanion({
+    this.id = const Value.absent(),
+    this.mataKuliahId = const Value.absent(),
+    this.jenis = const Value.absent(),
+    this.deskripsi = const Value.absent(),
+    this.tenggatWaktu = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TugassCompanion.insert({
+    required String id,
+    required String mataKuliahId,
+    required String jenis,
+    required String deskripsi,
+    required DateTime tenggatWaktu,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       mataKuliahId = Value(mataKuliahId),
+       jenis = Value(jenis),
+       deskripsi = Value(deskripsi),
+       tenggatWaktu = Value(tenggatWaktu);
+  static Insertable<TugassData> custom({
+    Expression<String>? id,
+    Expression<String>? mataKuliahId,
+    Expression<String>? jenis,
+    Expression<String>? deskripsi,
+    Expression<DateTime>? tenggatWaktu,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (mataKuliahId != null) 'mata_kuliah_id': mataKuliahId,
+      if (jenis != null) 'jenis': jenis,
+      if (deskripsi != null) 'deskripsi': deskripsi,
+      if (tenggatWaktu != null) 'tenggat_waktu': tenggatWaktu,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TugassCompanion copyWith({
+    Value<String>? id,
+    Value<String>? mataKuliahId,
+    Value<String>? jenis,
+    Value<String>? deskripsi,
+    Value<DateTime>? tenggatWaktu,
+    Value<int>? rowid,
+  }) {
+    return TugassCompanion(
+      id: id ?? this.id,
+      mataKuliahId: mataKuliahId ?? this.mataKuliahId,
+      jenis: jenis ?? this.jenis,
+      deskripsi: deskripsi ?? this.deskripsi,
+      tenggatWaktu: tenggatWaktu ?? this.tenggatWaktu,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (mataKuliahId.present) {
+      map['mata_kuliah_id'] = Variable<String>(mataKuliahId.value);
+    }
+    if (jenis.present) {
+      map['jenis'] = Variable<String>(jenis.value);
+    }
+    if (deskripsi.present) {
+      map['deskripsi'] = Variable<String>(deskripsi.value);
+    }
+    if (tenggatWaktu.present) {
+      map['tenggat_waktu'] = Variable<DateTime>(tenggatWaktu.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TugassCompanion(')
+          ..write('id: $id, ')
+          ..write('mataKuliahId: $mataKuliahId, ')
+          ..write('jenis: $jenis, ')
+          ..write('deskripsi: $deskripsi, ')
+          ..write('tenggatWaktu: $tenggatWaktu, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $MataKuliahsTable mataKuliahs = $MataKuliahsTable(this);
   late final $JadwalsTable jadwals = $JadwalsTable(this);
+  late final $TugassTable tugass = $TugassTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [mataKuliahs, jadwals];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    mataKuliahs,
+    jadwals,
+    tugass,
+  ];
 }
 
 typedef $$MataKuliahsTableCreateCompanionBuilder =
@@ -775,6 +1153,25 @@ final class $$MataKuliahsTableReferences
     ).filter((f) => f.mataKuliahId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_jadwalsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$TugassTable, List<TugassData>> _tugassRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.tugass,
+    aliasName: $_aliasNameGenerator(db.mataKuliahs.id, db.tugass.mataKuliahId),
+  );
+
+  $$TugassTableProcessedTableManager get tugassRefs {
+    final manager = $$TugassTableTableManager(
+      $_db,
+      $_db.tugass,
+    ).filter((f) => f.mataKuliahId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_tugassRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -826,6 +1223,31 @@ class $$MataKuliahsTableFilterComposer
           }) => $$JadwalsTableFilterComposer(
             $db: $db,
             $table: $db.jadwals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> tugassRefs(
+    Expression<bool> Function($$TugassTableFilterComposer f) f,
+  ) {
+    final $$TugassTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.tugass,
+      getReferencedColumn: (t) => t.mataKuliahId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TugassTableFilterComposer(
+            $db: $db,
+            $table: $db.tugass,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -911,6 +1333,31 @@ class $$MataKuliahsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> tugassRefs<T extends Object>(
+    Expression<T> Function($$TugassTableAnnotationComposer a) f,
+  ) {
+    final $$TugassTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.tugass,
+      getReferencedColumn: (t) => t.mataKuliahId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TugassTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tugass,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$MataKuliahsTableTableManager
@@ -926,7 +1373,7 @@ class $$MataKuliahsTableTableManager
           $$MataKuliahsTableUpdateCompanionBuilder,
           (MataKuliah, $$MataKuliahsTableReferences),
           MataKuliah,
-          PrefetchHooks Function({bool jadwalsRefs})
+          PrefetchHooks Function({bool jadwalsRefs, bool tugassRefs})
         > {
   $$MataKuliahsTableTableManager(_$AppDatabase db, $MataKuliahsTable table)
     : super(
@@ -975,10 +1422,13 @@ class $$MataKuliahsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({jadwalsRefs = false}) {
+          prefetchHooksCallback: ({jadwalsRefs = false, tugassRefs = false}) {
             return PrefetchHooks(
               db: db,
-              explicitlyWatchedTables: [if (jadwalsRefs) db.jadwals],
+              explicitlyWatchedTables: [
+                if (jadwalsRefs) db.jadwals,
+                if (tugassRefs) db.tugass,
+              ],
               addJoins: null,
               getPrefetchedDataCallback: (items) async {
                 return [
@@ -997,6 +1447,27 @@ class $$MataKuliahsTableTableManager
                             table,
                             p0,
                           ).jadwalsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.mataKuliahId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                  if (tugassRefs)
+                    await $_getPrefetchedData<
+                      MataKuliah,
+                      $MataKuliahsTable,
+                      TugassData
+                    >(
+                      currentTable: table,
+                      referencedTable: $$MataKuliahsTableReferences
+                          ._tugassRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$MataKuliahsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).tugassRefs,
                       referencedItemsForCurrentItem: (item, referencedItems) =>
                           referencedItems.where(
                             (e) => e.mataKuliahId == item.id,
@@ -1023,7 +1494,7 @@ typedef $$MataKuliahsTableProcessedTableManager =
       $$MataKuliahsTableUpdateCompanionBuilder,
       (MataKuliah, $$MataKuliahsTableReferences),
       MataKuliah,
-      PrefetchHooks Function({bool jadwalsRefs})
+      PrefetchHooks Function({bool jadwalsRefs, bool tugassRefs})
     >;
 typedef $$JadwalsTableCreateCompanionBuilder =
     JadwalsCompanion Function({
@@ -1365,6 +1836,325 @@ typedef $$JadwalsTableProcessedTableManager =
       Jadwal,
       PrefetchHooks Function({bool mataKuliahId})
     >;
+typedef $$TugassTableCreateCompanionBuilder =
+    TugassCompanion Function({
+      required String id,
+      required String mataKuliahId,
+      required String jenis,
+      required String deskripsi,
+      required DateTime tenggatWaktu,
+      Value<int> rowid,
+    });
+typedef $$TugassTableUpdateCompanionBuilder =
+    TugassCompanion Function({
+      Value<String> id,
+      Value<String> mataKuliahId,
+      Value<String> jenis,
+      Value<String> deskripsi,
+      Value<DateTime> tenggatWaktu,
+      Value<int> rowid,
+    });
+
+final class $$TugassTableReferences
+    extends BaseReferences<_$AppDatabase, $TugassTable, TugassData> {
+  $$TugassTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $MataKuliahsTable _mataKuliahIdTable(_$AppDatabase db) =>
+      db.mataKuliahs.createAlias(
+        $_aliasNameGenerator(db.tugass.mataKuliahId, db.mataKuliahs.id),
+      );
+
+  $$MataKuliahsTableProcessedTableManager get mataKuliahId {
+    final $_column = $_itemColumn<String>('mata_kuliah_id')!;
+
+    final manager = $$MataKuliahsTableTableManager(
+      $_db,
+      $_db.mataKuliahs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_mataKuliahIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$TugassTableFilterComposer
+    extends Composer<_$AppDatabase, $TugassTable> {
+  $$TugassTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get jenis => $composableBuilder(
+    column: $table.jenis,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deskripsi => $composableBuilder(
+    column: $table.deskripsi,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get tenggatWaktu => $composableBuilder(
+    column: $table.tenggatWaktu,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$MataKuliahsTableFilterComposer get mataKuliahId {
+    final $$MataKuliahsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mataKuliahId,
+      referencedTable: $db.mataKuliahs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MataKuliahsTableFilterComposer(
+            $db: $db,
+            $table: $db.mataKuliahs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TugassTableOrderingComposer
+    extends Composer<_$AppDatabase, $TugassTable> {
+  $$TugassTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get jenis => $composableBuilder(
+    column: $table.jenis,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deskripsi => $composableBuilder(
+    column: $table.deskripsi,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get tenggatWaktu => $composableBuilder(
+    column: $table.tenggatWaktu,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$MataKuliahsTableOrderingComposer get mataKuliahId {
+    final $$MataKuliahsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mataKuliahId,
+      referencedTable: $db.mataKuliahs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MataKuliahsTableOrderingComposer(
+            $db: $db,
+            $table: $db.mataKuliahs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TugassTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TugassTable> {
+  $$TugassTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get jenis =>
+      $composableBuilder(column: $table.jenis, builder: (column) => column);
+
+  GeneratedColumn<String> get deskripsi =>
+      $composableBuilder(column: $table.deskripsi, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get tenggatWaktu => $composableBuilder(
+    column: $table.tenggatWaktu,
+    builder: (column) => column,
+  );
+
+  $$MataKuliahsTableAnnotationComposer get mataKuliahId {
+    final $$MataKuliahsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mataKuliahId,
+      referencedTable: $db.mataKuliahs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MataKuliahsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mataKuliahs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TugassTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TugassTable,
+          TugassData,
+          $$TugassTableFilterComposer,
+          $$TugassTableOrderingComposer,
+          $$TugassTableAnnotationComposer,
+          $$TugassTableCreateCompanionBuilder,
+          $$TugassTableUpdateCompanionBuilder,
+          (TugassData, $$TugassTableReferences),
+          TugassData,
+          PrefetchHooks Function({bool mataKuliahId})
+        > {
+  $$TugassTableTableManager(_$AppDatabase db, $TugassTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TugassTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TugassTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TugassTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> mataKuliahId = const Value.absent(),
+                Value<String> jenis = const Value.absent(),
+                Value<String> deskripsi = const Value.absent(),
+                Value<DateTime> tenggatWaktu = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TugassCompanion(
+                id: id,
+                mataKuliahId: mataKuliahId,
+                jenis: jenis,
+                deskripsi: deskripsi,
+                tenggatWaktu: tenggatWaktu,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String mataKuliahId,
+                required String jenis,
+                required String deskripsi,
+                required DateTime tenggatWaktu,
+                Value<int> rowid = const Value.absent(),
+              }) => TugassCompanion.insert(
+                id: id,
+                mataKuliahId: mataKuliahId,
+                jenis: jenis,
+                deskripsi: deskripsi,
+                tenggatWaktu: tenggatWaktu,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) =>
+                    (e.readTable(table), $$TugassTableReferences(db, table, e)),
+              )
+              .toList(),
+          prefetchHooksCallback: ({mataKuliahId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (mataKuliahId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.mataKuliahId,
+                                referencedTable: $$TugassTableReferences
+                                    ._mataKuliahIdTable(db),
+                                referencedColumn: $$TugassTableReferences
+                                    ._mataKuliahIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TugassTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TugassTable,
+      TugassData,
+      $$TugassTableFilterComposer,
+      $$TugassTableOrderingComposer,
+      $$TugassTableAnnotationComposer,
+      $$TugassTableCreateCompanionBuilder,
+      $$TugassTableUpdateCompanionBuilder,
+      (TugassData, $$TugassTableReferences),
+      TugassData,
+      PrefetchHooks Function({bool mataKuliahId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1373,4 +2163,6 @@ class $AppDatabaseManager {
       $$MataKuliahsTableTableManager(_db, _db.mataKuliahs);
   $$JadwalsTableTableManager get jadwals =>
       $$JadwalsTableTableManager(_db, _db.jadwals);
+  $$TugassTableTableManager get tugass =>
+      $$TugassTableTableManager(_db, _db.tugass);
 }

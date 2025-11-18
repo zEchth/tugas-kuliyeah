@@ -1,14 +1,15 @@
 // lib/data/local/app_database.dart
 
+// PASTIKAN import ini menggunakan 'package:drift/drift.dart'
 import 'package:drift/drift.dart';
 
 // Pilih koneksi web atau app
-import 'app_database.native.dart' if (dart.library.html) 'app_database.web.dart';
+import 'app_database.native.dart'
+    if (dart.library.html) 'app_database.web.dart';
 
 // Perintah ini akan menghasilkan file baru setelah dijalankan
 part 'app_database.g.dart';
 
-// Impor model masih agak manual, bisa diotomatisasi
 // Definisikan tabel berdasarkan model
 class MataKuliahs extends Table {
   TextColumn get id => text()();
@@ -22,6 +23,7 @@ class MataKuliahs extends Table {
 
 class Jadwals extends Table {
   TextColumn get id => text()();
+  // Relasi ke tabel MataKuliahs
   TextColumn get mataKuliahId => text().references(MataKuliahs, #id)();
   TextColumn get hari => text()();
   DateTimeColumn get jamMulai => dateTime()();
@@ -32,12 +34,30 @@ class Jadwals extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-// Tabel tugas juga perlu dibuat disini (tugas pengerja Fitur Tambah Tugas/Kuis/UTS/UAS)
+// --- TAMBAHAN BARU (Fitur Tugas) ---
+// Tabel ini untuk menyimpan Tugas, Kuis, UTS, atau UAS
+class Tugass extends Table {
+  TextColumn get id => text()();
+  // Relasi ke tabel MataKuliahs
+  TextColumn get mataKuliahId => text().references(MataKuliahs, #id)();
+  // Jenis: "Tugas", "Kuis", "UTS", "UAS"
+  TextColumn get jenis => text()();
+  TextColumn get deskripsi => text()();
+  DateTimeColumn get tenggatWaktu => dateTime()();
 
-@DriftDatabase(tables: [MataKuliahs, Jadwals])
+  @override
+  Set<Column> get primaryKey => {id};
+}
+// --- AKHIR TAMBAHAN BARU ---
+
+// --- DAFTARKAN TABEL DI SINI ---
+@DriftDatabase(tables: [MataKuliahs, Jadwals, Tugass])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(connect()); // Menggunakan fungsi connect() yang diimpor
-  
+
+  // Versi schema database harus selalu di-increment jika ada perubahan struktur tabel
   @override
   int get schemaVersion => 1;
+
+  TableInfo<Table, dynamic>? get tugass => null;
 } // Akhir dari AppDatabase
