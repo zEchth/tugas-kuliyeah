@@ -1,18 +1,14 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_mata_kuliah_screen.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_list_screen.dart';
-
 
 void main() {
   // Pastikan binding siap sebelum menjalankan APP
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
     // Bungkus seluruh app dengan ProviderScope
-    ProviderScope(
-      child: const MyApp(),
-    )
+    ProviderScope(child: const MyApp()),
   );
 }
 
@@ -24,9 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'TaskTracker',
-      theme: ThemeData.dark(
-        useMaterial3: true,
-      ),
+      theme: ThemeData.dark(useMaterial3: true),
       debugShowCheckedModeBanner: false,
       home: MataKuliahListScreen(),
     );
