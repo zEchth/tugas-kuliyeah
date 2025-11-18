@@ -58,6 +58,4 @@ class AppDatabase extends _$AppDatabase {
   // Versi schema database harus selalu di-increment jika ada perubahan struktur tabel
   @override
   int get schemaVersion => 1;
-
-  TableInfo<Table, dynamic>? get tugass => null;
 } // Akhir dari AppDatabase
