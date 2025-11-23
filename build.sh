@@ -6,7 +6,7 @@ echo "Getting dependencies..."
 dart pub get
 
 echo "Building project..."
-dart build build_runner build --delete-conflicting-outputs
+dart run build_runner build --delete-conflicting-outputs
 
 # 1. Kompilasi Drift Web Worker
 echo "Compiling drift_worker.dart to root..."
