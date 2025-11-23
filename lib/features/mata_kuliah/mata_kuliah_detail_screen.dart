@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart'; // Impor intl
+import 'package:open_filex/open_filex.dart'; // Import Library untuk buka file
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
 import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_jadwal_screen.dart';
@@ -12,6 +13,30 @@ import 'package:tugas_kuliyeah/features/tugas/add_edit_tugas_screen.dart';
 class MataKuliahDetailScreen extends ConsumerWidget {
   final core_model.MataKuliah matkul;
   const MataKuliahDetailScreen({super.key, required this.matkul});
+
+  // --- BAGIAN EKA: Fungsi Buka File dengan Debugging ---
+  void _openAttachment(BuildContext context, String path) async {
+    // 1. Cetak path ke Console (Untuk Cek apakah path-nya benar)
+    debugPrint("Mencoba membuka file di path: $path"); 
+
+    final result = await OpenFilex.open(path);
+    
+    // 2. Cetak hasil ke Console
+    debugPrint("Hasil OpenFilex: ${result.type} - ${result.message}");
+
+    if (result.type != ResultType.done) {
+       // Tampilkan Snackbar Error
+       if (context.mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Gagal buka file: ${result.message}"),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+       }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -156,6 +181,9 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                         'dd MMM yyyy, HH:mm',
                       ).format(tugas.tenggatWaktu);
 
+                      // Cek apakah ada attachment
+                      final bool hasAttachment = tugas.attachmentPath != null && tugas.attachmentPath!.isNotEmpty;
+
                       // --- Delete Tugas (Geser) ---
                       return Dismissible(
                         key: ValueKey(tugas.id),
@@ -178,10 +206,27 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                               tugas.jenis,
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
-                            subtitle: Text(
-                              "${tugas.deskripsi}\nTenggat: $tenggat",
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("${tugas.deskripsi}\nTenggat: $tenggat"),
+                                // Jika ada file, tampilkan indikator
+                                if (hasAttachment)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.attach_file, size: 14, color: Colors.blueAccent),
+                                        Text(" Ada Lampiran", style: TextStyle(color: Colors.blueAccent, fontSize: 12))
+                                      ],
+                                    ),
+                                  )
+                              ],
                             ),
                             isThreeLine: true,
+                            // Jika ada file, tap pada list akan membuka file
+                            // Jika tidak, tidak melakukan apa-apa
+                            onTap: hasAttachment ? () => _openAttachment(context, tugas.attachmentPath!) : null,
                             trailing: IconButton(
                               icon: Icon(
                                 Icons.edit_note,
@@ -213,7 +258,6 @@ class MataKuliahDetailScreen extends ConsumerWidget {
         ),
       ),
       // --- MODIFIKASI FAB ---
-      // Kita buat 2 FAB kecil dalam satu kolom
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

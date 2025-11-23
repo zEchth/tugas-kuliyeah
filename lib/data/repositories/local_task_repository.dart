@@ -7,23 +7,19 @@ import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
 
 import 'package:tugas_kuliyeah/data/local/app_database.dart';
-// NOTE: Drift Components (TugassCompanion) diimpor melalui app_database.dart
 
-// Implementasi 'TaskRepository' (Kontrak)
 class LocalTaskRepository implements TaskRepository {
   final AppDatabase db;
   LocalTaskRepository(this.db);
 
   @override
   Future<void> addMataKuliah(core_model.MataKuliah matakuliah) async {
-    // Konversi model 'core' ke model tabel 'drift'
     final matkulCompanion = MataKuliahsCompanion.insert(
       id: matakuliah.id,
       nama: matakuliah.nama,
       dosen: matakuliah.dosen,
       sks: matakuliah.sks,
     );
-    // Masukkan ke database
     await db.into(db.mataKuliahs).insert(matkulCompanion);
   }
 
@@ -42,17 +38,13 @@ class LocalTaskRepository implements TaskRepository {
 
   @override
   Stream<List<core_model.MataKuliah>> watchAllMataKuliah() {
-    // 1. Ambil stream dari Drift
     final streamDrift = db.select(db.mataKuliahs).watch();
-
-    // 2. Konversi stream (map) dari model Drift ke Core Model
     return streamDrift.map((listMatkulDrift) {
       return listMatkulDrift
           .map(
             (matkulDrift) => core_model.MataKuliah(
               id: matkulDrift.id,
               nama: matkulDrift.nama,
-              // Menggunakan '?? ""' untuk keamanan Null Safety
               dosen: matkulDrift.dosen,
               sks: matkulDrift.sks,
             ),
@@ -63,12 +55,10 @@ class LocalTaskRepository implements TaskRepository {
 
   @override
   Stream<List<core_model.Jadwal>> watchJadwalByMataKuliah(String mataKuliahId) {
-    // 1. Query stream dengan filter WHERE
     final queryStream = (db.select(
       db.jadwals,
     )..where((tbl) => tbl.mataKuliahId.equals(mataKuliahId))).watch();
 
-    // 2. Konversi stream
     return queryStream.map((listJadwalDrift) {
       return listJadwalDrift
           .map(
@@ -78,7 +68,6 @@ class LocalTaskRepository implements TaskRepository {
               hari: jadwalDrift.hari,
               jamMulai: jadwalDrift.jamMulai,
               jamSelesai: jadwalDrift.jamSelesai,
-              // Menggunakan '?? ""' untuk keamanan Null Safety
               ruangan: jadwalDrift.ruangan,
             ),
           )
@@ -88,7 +77,6 @@ class LocalTaskRepository implements TaskRepository {
 
   @override
   Future<void> updateMataKuliah(core_model.MataKuliah mataKuliah) async {
-    // Gunakan 'replace' yang berfungsi sebagai 'update'
     await db
         .update(db.mataKuliahs)
         .replace(
@@ -103,17 +91,12 @@ class LocalTaskRepository implements TaskRepository {
 
   @override
   Future<void> deleteMataKuliah(String mataKuliahId) async {
-    // Query 'delete' dengan 'where'
     await (db.delete(
       db.mataKuliahs,
     )..where((tbl) => tbl.id.equals(mataKuliahId))).go();
-
-    // PENTING: Hapus juga semua jadwal yang terkait!
     await (db.delete(
       db.jadwals,
     )..where((tbl) => tbl.mataKuliahId.equals(mataKuliahId))).go();
-
-    // --- TAMBAHAN BARU: Hapus juga TUGAS yang terkait ---
     await (db.delete(
       db.tugass,
     )..where((tbl) => tbl.mataKuliahId.equals(mataKuliahId))).go();
@@ -140,19 +123,19 @@ class LocalTaskRepository implements TaskRepository {
     await (db.delete(db.jadwals)..where((tbl) => tbl.id.equals(jadwalId))).go();
   }
 
-  // --- IMPLEMENTASI BARU (Fitur Tugas) ---
+  // --- BAGIAN EKA: Update CRUD Tugas untuk Attachment ---
 
   @override
   Future<void> addTugas(core_model.Tugas tugas) async {
-    // TugassCompanion dibuat oleh build_runner di app_database.g.dart
     final tugasCompanion = TugassCompanion.insert(
       id: tugas.id,
       mataKuliahId: tugas.mataKuliahId,
       jenis: tugas.jenis,
       deskripsi: tugas.deskripsi,
       tenggatWaktu: tugas.tenggatWaktu,
+      // Masukkan path file ke database
+      attachmentPath: Value(tugas.attachmentPath), 
     );
-    // db.tugass dibuat oleh build_runner di app_database.g.dart
     await db.into(db.tugass).insert(tugasCompanion);
   }
 
@@ -167,6 +150,8 @@ class LocalTaskRepository implements TaskRepository {
             jenis: Value(tugas.jenis),
             deskripsi: Value(tugas.deskripsi),
             tenggatWaktu: Value(tugas.tenggatWaktu),
+            // Update path file
+            attachmentPath: Value(tugas.attachmentPath),
           ),
         );
   }
@@ -178,12 +163,10 @@ class LocalTaskRepository implements TaskRepository {
 
   @override
   Stream<List<core_model.Tugas>> watchTugasByMataKuliah(String mataKuliahId) {
-    // 1. Query stream dengan filter WHERE
     final queryStream = (db.select(
       db.tugass,
     )..where((tbl) => tbl.mataKuliahId.equals(mataKuliahId))).watch();
 
-    // 2. Konversi stream
     return queryStream.map((listTugasDrift) {
       return listTugasDrift
           .map(
@@ -193,6 +176,8 @@ class LocalTaskRepository implements TaskRepository {
               jenis: tugasDrift.jenis,
               deskripsi: tugasDrift.deskripsi,
               tenggatWaktu: tugasDrift.tenggatWaktu,
+              // Ambil path file dari database
+              attachmentPath: tugasDrift.attachmentPath,
             ),
           )
           .toList();

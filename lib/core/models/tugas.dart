@@ -1,11 +1,14 @@
 // lib/core/models/tugas.dart
-// Ini untuk dikerja pengerja fitur Tambah Tugas/Kuis/UTS/UAS (bisa dirombak)
 class Tugas {
   final String id;
   final String mataKuliahId; // Kunci penghubung
   final String jenis; // "Tugas", "Kuis", "UTS", "UAS"
   final String deskripsi;
   final DateTime tenggatWaktu;
+  
+  // --- BAGIAN EKA (Fitur 5) ---
+  final String? attachmentPath; // Path lokasi file (PDF/Image) di HP
+  // ----------------------------
 
   Tugas({
     required this.id,
@@ -13,5 +16,6 @@ class Tugas {
     required this.jenis,
     required this.deskripsi,
     required this.tenggatWaktu,
-  }); // Akhir Tugas
+    this.attachmentPath, // Bisa null jika tidak ada file
+  });
 }

@@ -787,6 +787,17 @@ class $TugassTable extends Tugass with TableInfo<$TugassTable, TugassData> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _attachmentPathMeta = const VerificationMeta(
+    'attachmentPath',
+  );
+  @override
+  late final GeneratedColumn<String> attachmentPath = GeneratedColumn<String>(
+    'attachment_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -794,6 +805,7 @@ class $TugassTable extends Tugass with TableInfo<$TugassTable, TugassData> {
     jenis,
     deskripsi,
     tenggatWaktu,
+    attachmentPath,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -850,6 +862,15 @@ class $TugassTable extends Tugass with TableInfo<$TugassTable, TugassData> {
     } else if (isInserting) {
       context.missing(_tenggatWaktuMeta);
     }
+    if (data.containsKey('attachment_path')) {
+      context.handle(
+        _attachmentPathMeta,
+        attachmentPath.isAcceptableOrUnknown(
+          data['attachment_path']!,
+          _attachmentPathMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -879,6 +900,10 @@ class $TugassTable extends Tugass with TableInfo<$TugassTable, TugassData> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}tenggat_waktu'],
       )!,
+      attachmentPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attachment_path'],
+      ),
     );
   }
 
@@ -894,12 +919,14 @@ class TugassData extends DataClass implements Insertable<TugassData> {
   final String jenis;
   final String deskripsi;
   final DateTime tenggatWaktu;
+  final String? attachmentPath;
   const TugassData({
     required this.id,
     required this.mataKuliahId,
     required this.jenis,
     required this.deskripsi,
     required this.tenggatWaktu,
+    this.attachmentPath,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -909,6 +936,9 @@ class TugassData extends DataClass implements Insertable<TugassData> {
     map['jenis'] = Variable<String>(jenis);
     map['deskripsi'] = Variable<String>(deskripsi);
     map['tenggat_waktu'] = Variable<DateTime>(tenggatWaktu);
+    if (!nullToAbsent || attachmentPath != null) {
+      map['attachment_path'] = Variable<String>(attachmentPath);
+    }
     return map;
   }
 
@@ -919,6 +949,9 @@ class TugassData extends DataClass implements Insertable<TugassData> {
       jenis: Value(jenis),
       deskripsi: Value(deskripsi),
       tenggatWaktu: Value(tenggatWaktu),
+      attachmentPath: attachmentPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(attachmentPath),
     );
   }
 
@@ -933,6 +966,7 @@ class TugassData extends DataClass implements Insertable<TugassData> {
       jenis: serializer.fromJson<String>(json['jenis']),
       deskripsi: serializer.fromJson<String>(json['deskripsi']),
       tenggatWaktu: serializer.fromJson<DateTime>(json['tenggatWaktu']),
+      attachmentPath: serializer.fromJson<String?>(json['attachmentPath']),
     );
   }
   @override
@@ -944,6 +978,7 @@ class TugassData extends DataClass implements Insertable<TugassData> {
       'jenis': serializer.toJson<String>(jenis),
       'deskripsi': serializer.toJson<String>(deskripsi),
       'tenggatWaktu': serializer.toJson<DateTime>(tenggatWaktu),
+      'attachmentPath': serializer.toJson<String?>(attachmentPath),
     };
   }
 
@@ -953,12 +988,16 @@ class TugassData extends DataClass implements Insertable<TugassData> {
     String? jenis,
     String? deskripsi,
     DateTime? tenggatWaktu,
+    Value<String?> attachmentPath = const Value.absent(),
   }) => TugassData(
     id: id ?? this.id,
     mataKuliahId: mataKuliahId ?? this.mataKuliahId,
     jenis: jenis ?? this.jenis,
     deskripsi: deskripsi ?? this.deskripsi,
     tenggatWaktu: tenggatWaktu ?? this.tenggatWaktu,
+    attachmentPath: attachmentPath.present
+        ? attachmentPath.value
+        : this.attachmentPath,
   );
   TugassData copyWithCompanion(TugassCompanion data) {
     return TugassData(
@@ -971,6 +1010,9 @@ class TugassData extends DataClass implements Insertable<TugassData> {
       tenggatWaktu: data.tenggatWaktu.present
           ? data.tenggatWaktu.value
           : this.tenggatWaktu,
+      attachmentPath: data.attachmentPath.present
+          ? data.attachmentPath.value
+          : this.attachmentPath,
     );
   }
 
@@ -981,14 +1023,21 @@ class TugassData extends DataClass implements Insertable<TugassData> {
           ..write('mataKuliahId: $mataKuliahId, ')
           ..write('jenis: $jenis, ')
           ..write('deskripsi: $deskripsi, ')
-          ..write('tenggatWaktu: $tenggatWaktu')
+          ..write('tenggatWaktu: $tenggatWaktu, ')
+          ..write('attachmentPath: $attachmentPath')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, mataKuliahId, jenis, deskripsi, tenggatWaktu);
+  int get hashCode => Object.hash(
+    id,
+    mataKuliahId,
+    jenis,
+    deskripsi,
+    tenggatWaktu,
+    attachmentPath,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -997,7 +1046,8 @@ class TugassData extends DataClass implements Insertable<TugassData> {
           other.mataKuliahId == this.mataKuliahId &&
           other.jenis == this.jenis &&
           other.deskripsi == this.deskripsi &&
-          other.tenggatWaktu == this.tenggatWaktu);
+          other.tenggatWaktu == this.tenggatWaktu &&
+          other.attachmentPath == this.attachmentPath);
 }
 
 class TugassCompanion extends UpdateCompanion<TugassData> {
@@ -1006,6 +1056,7 @@ class TugassCompanion extends UpdateCompanion<TugassData> {
   final Value<String> jenis;
   final Value<String> deskripsi;
   final Value<DateTime> tenggatWaktu;
+  final Value<String?> attachmentPath;
   final Value<int> rowid;
   const TugassCompanion({
     this.id = const Value.absent(),
@@ -1013,6 +1064,7 @@ class TugassCompanion extends UpdateCompanion<TugassData> {
     this.jenis = const Value.absent(),
     this.deskripsi = const Value.absent(),
     this.tenggatWaktu = const Value.absent(),
+    this.attachmentPath = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TugassCompanion.insert({
@@ -1021,6 +1073,7 @@ class TugassCompanion extends UpdateCompanion<TugassData> {
     required String jenis,
     required String deskripsi,
     required DateTime tenggatWaktu,
+    this.attachmentPath = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        mataKuliahId = Value(mataKuliahId),
@@ -1033,6 +1086,7 @@ class TugassCompanion extends UpdateCompanion<TugassData> {
     Expression<String>? jenis,
     Expression<String>? deskripsi,
     Expression<DateTime>? tenggatWaktu,
+    Expression<String>? attachmentPath,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1041,6 +1095,7 @@ class TugassCompanion extends UpdateCompanion<TugassData> {
       if (jenis != null) 'jenis': jenis,
       if (deskripsi != null) 'deskripsi': deskripsi,
       if (tenggatWaktu != null) 'tenggat_waktu': tenggatWaktu,
+      if (attachmentPath != null) 'attachment_path': attachmentPath,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1051,6 +1106,7 @@ class TugassCompanion extends UpdateCompanion<TugassData> {
     Value<String>? jenis,
     Value<String>? deskripsi,
     Value<DateTime>? tenggatWaktu,
+    Value<String?>? attachmentPath,
     Value<int>? rowid,
   }) {
     return TugassCompanion(
@@ -1059,6 +1115,7 @@ class TugassCompanion extends UpdateCompanion<TugassData> {
       jenis: jenis ?? this.jenis,
       deskripsi: deskripsi ?? this.deskripsi,
       tenggatWaktu: tenggatWaktu ?? this.tenggatWaktu,
+      attachmentPath: attachmentPath ?? this.attachmentPath,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1081,6 +1138,9 @@ class TugassCompanion extends UpdateCompanion<TugassData> {
     if (tenggatWaktu.present) {
       map['tenggat_waktu'] = Variable<DateTime>(tenggatWaktu.value);
     }
+    if (attachmentPath.present) {
+      map['attachment_path'] = Variable<String>(attachmentPath.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1095,6 +1155,7 @@ class TugassCompanion extends UpdateCompanion<TugassData> {
           ..write('jenis: $jenis, ')
           ..write('deskripsi: $deskripsi, ')
           ..write('tenggatWaktu: $tenggatWaktu, ')
+          ..write('attachmentPath: $attachmentPath, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1843,6 +1904,7 @@ typedef $$TugassTableCreateCompanionBuilder =
       required String jenis,
       required String deskripsi,
       required DateTime tenggatWaktu,
+      Value<String?> attachmentPath,
       Value<int> rowid,
     });
 typedef $$TugassTableUpdateCompanionBuilder =
@@ -1852,6 +1914,7 @@ typedef $$TugassTableUpdateCompanionBuilder =
       Value<String> jenis,
       Value<String> deskripsi,
       Value<DateTime> tenggatWaktu,
+      Value<String?> attachmentPath,
       Value<int> rowid,
     });
 
@@ -1908,6 +1971,11 @@ class $$TugassTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get attachmentPath => $composableBuilder(
+    column: $table.attachmentPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$MataKuliahsTableFilterComposer get mataKuliahId {
     final $$MataKuliahsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -1961,6 +2029,11 @@ class $$TugassTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get attachmentPath => $composableBuilder(
+    column: $table.attachmentPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$MataKuliahsTableOrderingComposer get mataKuliahId {
     final $$MataKuliahsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2005,6 +2078,11 @@ class $$TugassTableAnnotationComposer
 
   GeneratedColumn<DateTime> get tenggatWaktu => $composableBuilder(
     column: $table.tenggatWaktu,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get attachmentPath => $composableBuilder(
+    column: $table.attachmentPath,
     builder: (column) => column,
   );
 
@@ -2065,6 +2143,7 @@ class $$TugassTableTableManager
                 Value<String> jenis = const Value.absent(),
                 Value<String> deskripsi = const Value.absent(),
                 Value<DateTime> tenggatWaktu = const Value.absent(),
+                Value<String?> attachmentPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TugassCompanion(
                 id: id,
@@ -2072,6 +2151,7 @@ class $$TugassTableTableManager
                 jenis: jenis,
                 deskripsi: deskripsi,
                 tenggatWaktu: tenggatWaktu,
+                attachmentPath: attachmentPath,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2081,6 +2161,7 @@ class $$TugassTableTableManager
                 required String jenis,
                 required String deskripsi,
                 required DateTime tenggatWaktu,
+                Value<String?> attachmentPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TugassCompanion.insert(
                 id: id,
@@ -2088,6 +2169,7 @@ class $$TugassTableTableManager
                 jenis: jenis,
                 deskripsi: deskripsi,
                 tenggatWaktu: tenggatWaktu,
+                attachmentPath: attachmentPath,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
