@@ -1,8 +1,9 @@
 ## tugas-kuliyeah
 # Pemrograman Mobile-Kelompok 11
 
-# Skrip dibawah perlu di run terlebih dahulu:
+# Skrip dibawah perlu di run terlebih dahulu di Git Bash:
+Pastikan anda sudah berada di direktori proyek!
 ```
-chmod +x build_worker.sh # Hanya sekali
-./build_worker.sh
+chmod +x build.sh # Hanya sekali
+./build.sh
 ```
