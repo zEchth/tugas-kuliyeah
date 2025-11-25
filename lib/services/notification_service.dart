@@ -2,12 +2,16 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'dart:io';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    if (kIsWeb) return;
+
     tz.initializeTimeZones();
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -25,6 +29,8 @@ class NotificationService {
 
   // === FIX: Minta exact alarm permission (Android 13+) ===
   Future<void> _requestExactAlarmPermission() async {
+    if (kIsWeb) return;
+
     final androidImplementation = flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -37,6 +43,8 @@ class NotificationService {
 
   // === CEK APAKAH EXACT ALARM DIIZINKAN ===
   Future<bool> _canUseExactAlarm() async {
+    if (kIsWeb) return false;
+
     final androidImplementation = flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -54,6 +62,7 @@ class NotificationService {
     required String body,
     required DateTime scheduledDate,
   }) async {
+    if (kIsWeb) return;
     if (scheduledDate.isBefore(DateTime.now())) return;
 
     final canExact = await _canUseExactAlarm();
@@ -89,6 +98,7 @@ class NotificationService {
     required int hour,
     required int minute,
   }) async {
+    if (kIsWeb) return;
     final canExact = await _canUseExactAlarm();
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
@@ -129,6 +139,7 @@ class NotificationService {
   }
 
   Future<void> cancelNotification(int id) async {
+    if (kIsWeb) return;
     await flutterLocalNotificationsPlugin.cancel(id);
   }
 
