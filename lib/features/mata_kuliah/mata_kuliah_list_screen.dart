@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_mata_kuliah_screen.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_detail_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MataKuliahListScreen extends ConsumerWidget {
   const MataKuliahListScreen({super.key});
@@ -16,6 +17,17 @@ class MataKuliahListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text("Mata Kuliah Saya"),
+        
+        // alfath: menambahkan tombol logout
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+            },
+          ),
+        ],
+
       ),
       body: asyncMataKuliah.when(
         loading: () => Center(child: CircularProgressIndicator()),
