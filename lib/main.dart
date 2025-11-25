@@ -1,29 +1,37 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/autentikasi/login_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tugas_kuliyeah/core/providers.dart';
+// IMPORT SERVICE
+import 'package:tugas_kuliyeah/services/notification_service.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_list_screen.dart';
 
 void main() async {
   // Pastikan binding siap sebelum menjalankan APP
+  
   WidgetsFlutterBinding.ensureInitialized();
-
+  final notificationService = NotificationService();
+  await notificationService.init();
   await Supabase.initialize(
     url: 'https://zjpswhmhfvapcquscmvd.supabase.co', // Ganti dengan URL proyek Supabase Anda
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqcHN3aG1oZnZhcGNxdXNjbXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0NzE4NjEsImV4cCI6MjA3OTA0Nzg2MX0.kdJgx-4kbzM0HzDXgdyoZrW2g1aXA8ue8NQX0Mdf4d8',
   );
 
   runApp(
-    // Bungkus seluruh app dengan ProviderScope
-    ProviderScope(child: const MyApp()),
+    ProviderScope(
+      // INJECT SERVICE KE RIVERPOD DI SINI
+      overrides: [
+        notificationServiceProvider.overrideWithValue(notificationService),
+      ],
+      child: const MyApp(),
+    ),
   );
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
