@@ -29,10 +29,68 @@ class MataKuliahListScreen extends ConsumerWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14),
                   onTap: () async {
-                    // animasi kecil
-                    await Future.delayed(const Duration(milliseconds: 10));
-                    await Supabase.instance.client.auth.signOut();
+                    await showDialog(
+                      context: context,
+                      barrierDismissible:
+                          false, // user gak bisa tutup dengan klik luar
+                      builder: (context) {
+                        return AlertDialog(
+                          backgroundColor: const Color(0xFF1A1A1A),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          title: const Text(
+                            "Logout?",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
+                            ),
+                          ),
+                          content: Text(
+                            "Apakah kamu yakin ingin keluar?",
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 15,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context); // batal
+                              },
+                              child: Text(
+                                "Batal",
+                                style: TextStyle(
+                                  color: Colors.grey.shade300,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.withValues(
+                                  alpha: 0.9,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () async {
+                                Navigator.pop(context); // tutup dialog
+                                await Supabase.instance.client.auth.signOut();
+                              },
+                              child: const Text(
+                                "Logout",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
                   },
+
                   child: Container(
                     margin: const EdgeInsets.only(right: 14),
                     padding: const EdgeInsets.all(10),
