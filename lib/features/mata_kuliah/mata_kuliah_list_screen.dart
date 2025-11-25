@@ -17,17 +17,40 @@ class MataKuliahListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text("Mata Kuliah Saya"),
-        
+
         // alfath: menambahkan tombol logout
         actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await Supabase.instance.client.auth.signOut();
+          TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 200),
+            tween: Tween(begin: 1.0, end: 1.0),
+            builder: (context, scale, child) {
+              return Transform.scale(
+                scale: scale,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () async {
+                    // animasi kecil
+                    await Future.delayed(const Duration(milliseconds: 10));
+                    await Supabase.instance.client.auth.signOut();
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 14),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.logout_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              );
             },
           ),
         ],
-
       ),
       body: asyncMataKuliah.when(
         loading: () => Center(child: CircularProgressIndicator()),
@@ -38,7 +61,7 @@ class MataKuliahListScreen extends ConsumerWidget {
               child: Text(
                 "Belum ada mata kuliah.\nTekan (+) untuk menambah.",
                 textAlign: TextAlign.center,
-                ),
+              ),
             );
           }
 
@@ -46,7 +69,7 @@ class MataKuliahListScreen extends ConsumerWidget {
             itemCount: listMataKuliah.length,
             itemBuilder: (context, index) {
               final matkul = listMataKuliah[index];
-              
+
               // --- Delete (Geser) ---
               return Dismissible(
                 key: ValueKey(matkul.id), // Kunci unik
@@ -61,13 +84,14 @@ class MataKuliahListScreen extends ConsumerWidget {
                   // Panggil fungsi Delete dari repository
                   ref.read(taskRepositoryProvider).deleteMataKuliah(matkul.id);
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("${matkul.nama} dihapus")));
+                    SnackBar(content: Text("${matkul.nama} dihapus")),
+                  );
                 },
                 child: ListTile(
                   title: Text(matkul.nama),
                   subtitle: Text("${matkul.dosen} - ${matkul.sks} SKS"),
                   trailing: Icon(Icons.chevron_right),
-                  
+
                   // --- Read (Detail) ---
                   onTap: () {
                     Navigator.push(
@@ -81,11 +105,12 @@ class MataKuliahListScreen extends ConsumerWidget {
 
                   // --- Update (Tahan Lama) ---
                   onLongPress: () {
-                     Navigator.push(
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         // Kirim matkul untuk mode Edit
-                        builder: (context) => AddEditMataKuliahScreen(matkul: matkul),
+                        builder: (context) =>
+                            AddEditMataKuliahScreen(matkul: matkul),
                       ),
                     );
                   },
