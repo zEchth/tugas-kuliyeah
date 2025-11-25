@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 // ... (sisa import)
 
-// Alfath 
 // Ini adalah fungsi koneksi untuk Native
 // DatabaseConnection connect() {
 //   return DatabaseConnection.delayed(Future(() async {
@@ -18,6 +17,7 @@ import 'package:path/path.dart' as p;
 //   }));
 // }
 
+// Alfath 
 LazyDatabase connect() {
   return LazyDatabase(() async {
     final dir = await getApplicationDocumentsDirectory();

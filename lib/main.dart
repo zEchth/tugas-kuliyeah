@@ -59,7 +59,7 @@ class AuthGate extends StatelessWidget {
           return LoginPage();
         } 
           
-        return const MataKuliahListScreen();
+        return MataKuliahListScreen();
       },
     );
   }
