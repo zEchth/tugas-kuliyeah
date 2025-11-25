@@ -54,4 +54,8 @@
             <data android:mimeType="text/plain" />
         </intent>
     </queries>
+    
+    <!-- Notification -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
 </manifest>

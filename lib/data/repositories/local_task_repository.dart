@@ -228,6 +228,10 @@ class LocalTaskRepository implements TaskRepository {
       db.mataKuliahs,
     )..where((tbl) => tbl.id.equals(tugas.mataKuliahId))).getSingle();
 
+    // print(
+    //   "DEBUG >> jadwal tugas = ${tugas.tenggatWaktu} | now = ${DateTime.now()}",
+    // );
+
     // 3. Pasang Notifikasi Deadline
     await notificationService.scheduleTugasReminder(
       id: _generateNotificationId(tugas.id),

@@ -1,85 +1,102 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+import 'dart:io';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // Inisialisasi service
   Future<void> init() async {
-    // Inisialisasi data zona waktu
     tz.initializeTimeZones();
 
-    // Konfigurasi Android
-    // Pastikan icon 'ic_launcher' ada di folder android/app/src/main/res/mipmap-*
-    // Default Flutter biasanya menggunakan '@mipmap/ic_launcher'
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const ios = DarwinInitializationSettings();
 
-    // Konfigurasi iOS (Darwin)
-    const DarwinInitializationSettings initializationSettingsDarwin =
-        DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        );
+    const settings = InitializationSettings(android: android, iOS: ios);
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-          android: initializationSettingsAndroid,
-          iOS: initializationSettingsDarwin,
-        );
+    await flutterLocalNotificationsPlugin.initialize(settings);
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    // FIX: request exact alarm permission (Android 13+)
+    if (Platform.isAndroid) {
+      await _requestExactAlarmPermission();
+    }
   }
 
-  // --- 1. REMINDER TUGAS (Sekali Jalan) ---
+  // === FIX: Minta exact alarm permission (Android 13+) ===
+  Future<void> _requestExactAlarmPermission() async {
+    final androidImplementation = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    if (androidImplementation != null) {
+      await androidImplementation.requestExactAlarmsPermission();
+    }
+  }
+
+  // === CEK APAKAH EXACT ALARM DIIZINKAN ===
+  Future<bool> _canUseExactAlarm() async {
+    final androidImplementation = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    if (androidImplementation == null) return false;
+
+    return await androidImplementation.canScheduleExactNotifications() ?? false;
+  }
+
+  // === REMINDER TUGAS ===
   Future<void> scheduleTugasReminder({
     required int id,
     required String title,
     required String body,
     required DateTime scheduledDate,
   }) async {
-    // Jangan jadwalkan jika waktu sudah lewat agar tidak error
     if (scheduledDate.isBefore(DateTime.now())) return;
+
+    final canExact = await _canUseExactAlarm();
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id,
       title,
       body,
       tz.TZDateTime.from(scheduledDate, tz.local),
-      const NotificationDetails(
+      NotificationDetails(
         android: AndroidNotificationDetails(
           'channel_tugas_id',
           'Reminder Tugas',
-          channelDescription: 'Notifikasi untuk tenggat waktu tugas',
+          channelDescription: 'Notifikasi tenggat tugas',
           importance: Importance.max,
           priority: Priority.high,
         ),
-        iOS: DarwinNotificationDetails(),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: canExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexact,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
-  // --- 2. REMINDER KULIAH (Berulang Mingguan) ---
+  // === REMINDER JADWAL KULIAH ===
   Future<void> scheduleJadwalKuliah({
     required int id,
     required String title,
     required String body,
-    required int dayOfWeek, // 1=Senin, 7=Minggu
+    required int dayOfWeek,
     required int hour,
     required int minute,
   }) async {
+    final canExact = await _canUseExactAlarm();
+
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id,
       title,
       body,
       _nextInstanceOfDay(dayOfWeek, hour, minute),
-      const NotificationDetails(
+      NotificationDetails(
         android: AndroidNotificationDetails(
           'channel_jadwal_id',
           'Jadwal Kuliah',
@@ -87,43 +104,50 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.high,
         ),
-        iOS: DarwinNotificationDetails(),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: canExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexact,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents:
-          DateTimeComponents.dayOfWeekAndTime, // Ulangi tiap minggu
+      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
     );
   }
 
-  // Fungsi Helper: Mencari tanggal/waktu terdekat untuk hari tertentu
-  tz.TZDateTime _nextInstanceOfDay(int dayOfWeek, int hour, int minute) {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
-    );
+  tz.TZDateTime _nextInstanceOfDay(int dow, int h, int m) {
+    final now = tz.TZDateTime.now(tz.local);
+    var result = tz.TZDateTime(tz.local, now.year, now.month, now.day, h, m);
 
-    // Geser tanggal sampai harinya cocok
-    while (scheduledDate.weekday != dayOfWeek) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    while (result.weekday != dow) {
+      result = result.add(const Duration(days: 1));
     }
 
-    // Jika waktunya sudah lewat hari ini, jadwalkan minggu depan
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 7));
+    if (result.isBefore(now)) {
+      result = result.add(const Duration(days: 7));
     }
-
-    return scheduledDate;
+    return result;
   }
 
-  // Batalkan notifikasi berdasarkan ID
   Future<void> cancelNotification(int id) async {
     await flutterLocalNotificationsPlugin.cancel(id);
   }
+
+  // === TEST NOTIF LANGSUNG (TIDAK PAKAI ALARM) ===
+  // Future<void> testImmediateNotif() async {
+  //   await flutterLocalNotificationsPlugin.show(
+  //     9999,
+  //     "Test Notifikasi",
+  //     "Kalau ini muncul berarti notif kamu hidup",
+  //     const NotificationDetails(
+  //       android: AndroidNotificationDetails(
+  //         'test_channel',
+  //         'Test Channel',
+  //         channelDescription: 'Channel untuk testing notifikasi',
+  //         importance: Importance.max,
+  //         priority: Priority.high,
+  //       ),
+  //       iOS: DarwinNotificationDetails(),
+  //     ),
+  //   );
+  // }
 }

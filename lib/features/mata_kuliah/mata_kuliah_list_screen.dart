@@ -145,7 +145,7 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
         ),
 
         actions: [
-          // tombol logout kamu tetap di sini
+          // Tombol logout
           TweenAnimationBuilder<double>(
             duration: const Duration(milliseconds: 200),
             tween: Tween(begin: 1.0, end: 1.0),
@@ -230,6 +230,44 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
         ],
       ),
 
+      // Test notification
+      // body: Column(
+      //   children: [
+      //     // === TOMBOL TEST NOTIF DI SINI ===
+      //     Padding(
+      //       padding: const EdgeInsets.all(12),
+      //       child: ElevatedButton(
+      //         onPressed: () {
+      //           ref.read(notificationServiceProvider).testImmediateNotif();
+      //         },
+      //         child: const Text("TEST NOTIF"),
+      //       ),
+      //     ),
+
+      //     // Expanded biar ListView tetap tampil
+      //     Expanded(
+      //       child: asyncMataKuliah.when(
+      //         loading: () => Center(child: CircularProgressIndicator()),
+      //         error: (err, stack) => Center(child: Text("Error: $err")),
+      //         data: (listMataKuliah) {
+      //           if (listMataKuliah.isEmpty) {
+      //             return Center(
+      //               child: Text(
+      //                 "Belum ada mata kuliah.\nTekan (+) untuk menambah.",
+      //                 textAlign: TextAlign.center,
+      //               ),
+      //             );
+      //           }
+
+      //           return ListView.builder(
+      //             itemCount: listMataKuliah.length,
+      //             itemBuilder: (context, index) {},
+      //           );
+      //         },
+      //       ),
+      //     ),
+      //   ],
+      // ),
       body: asyncMataKuliah.when(
         loading: () => Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text("Error: $err")),
@@ -311,6 +349,7 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
           );
         },
       ),
+
     );
   }
 }
