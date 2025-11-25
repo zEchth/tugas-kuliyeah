@@ -21,7 +21,7 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   final db = ref.watch(databaseProvider);
   // AMBIL SERVICE DARI PROVIDER
-  final notifService = ref.watch(notificationServiceProvider);
+  final notifService = ref.read(notificationServiceProvider);
 
   // MASUKKAN KE REPOSITORY
   return LocalTaskRepository(db, notifService);
