@@ -14,12 +14,63 @@ class MataKuliahListScreen extends ConsumerWidget {
     // 'watch' stream provider-nya.
     final asyncMataKuliah = ref.watch(allMataKuliahProvider);
 
+    // Mengambil nama user dari metadata
+    final user = Supabase.instance.client.auth.currentUser;
+
+    final userName = user?.userMetadata?['full_name'] ?? "Pengguna";
+    final userPhoto =
+        user?.userMetadata?['avatar_url'] ??
+        user?.userMetadata?['picture']; // Google kadang pakai 'picture'
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("Mata Kuliah Saya"),
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            // FOTO PROFIL BULET PREMIUM
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 12,
+              ), // <<––– MARGIN KIRI DI SINI
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
+                backgroundImage: userPhoto != null
+                    ? NetworkImage(userPhoto)
+                    : null,
+                child: userPhoto == null
+                    ? Icon(Icons.person, color: Colors.white70)
+                    : null,
+              ),
+            ),
 
-        // alfath: menambahkan tombol logout
+            const SizedBox(width: 12),
+
+            // NAMA USER
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Hai, $userName",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  "Mata Kuliah Saya",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+
         actions: [
+          // tombol logout kamu tetap di sini
           TweenAnimationBuilder<double>(
             duration: const Duration(milliseconds: 200),
             tween: Tween(begin: 1.0, end: 1.0),
@@ -31,8 +82,7 @@ class MataKuliahListScreen extends ConsumerWidget {
                   onTap: () async {
                     await showDialog(
                       context: context,
-                      barrierDismissible:
-                          false, // user gak bisa tutup dengan klik luar
+                      barrierDismissible: false,
                       builder: (context) {
                         return AlertDialog(
                           backgroundColor: const Color(0xFF1A1A1A),
@@ -50,34 +100,29 @@ class MataKuliahListScreen extends ConsumerWidget {
                           content: Text(
                             "Apakah kamu yakin ingin keluar?",
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
+                              color: Colors.white70,
                               fontSize: 15,
                             ),
                           ),
                           actions: [
                             TextButton(
                               onPressed: () {
-                                Navigator.pop(context); // batal
+                                Navigator.pop(context);
                               },
-                              child: Text(
+                              child: const Text(
                                 "Batal",
-                                style: TextStyle(
-                                  color: Colors.grey.shade300,
-                                  fontSize: 15,
-                                ),
+                                style: TextStyle(color: Colors.white70),
                               ),
                             ),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red.withValues(
-                                  alpha: 0.9,
-                                ),
+                                backgroundColor: Colors.redAccent,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               onPressed: () async {
-                                Navigator.pop(context); // tutup dialog
+                                Navigator.pop(context);
                                 await Supabase.instance.client.auth.signOut();
                               },
                               child: const Text(
@@ -90,7 +135,6 @@ class MataKuliahListScreen extends ConsumerWidget {
                       },
                     );
                   },
-
                   child: Container(
                     margin: const EdgeInsets.only(right: 14),
                     padding: const EdgeInsets.all(10),
@@ -110,6 +154,7 @@ class MataKuliahListScreen extends ConsumerWidget {
           ),
         ],
       ),
+
       body: asyncMataKuliah.when(
         loading: () => Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text("Error: $err")),
