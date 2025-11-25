@@ -1,5 +1,4 @@
 // lib/features/tugas/add_edit_tugas_screen.dart
-import 'dart:io';
 import 'dart:math';
 import 'package:file_picker/file_picker.dart'; // Import Library
 import 'package:flutter/material.dart';
@@ -26,9 +25,9 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
   late TextEditingController _deskripsiC;
   String? _selectedJenis;
   DateTime? _tenggatWaktu;
-  
+
   // --- BAGIAN EKA: Variabel Path File ---
-  String? _attachmentPath; 
+  String? _attachmentPath;
   // -------------------------------------
 
   final List<String> _jenisList = ["Tugas", "Kuis", "UTS", "UAS"];
@@ -43,7 +42,7 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
     );
     _selectedJenis = _isEditing ? widget.tugas!.jenis : null;
     _tenggatWaktu = _isEditing ? widget.tugas!.tenggatWaktu : null;
-    
+
     // Isi variabel path jika sedang edit data lama
     _attachmentPath = _isEditing ? widget.tugas!.attachmentPath : null;
   }
@@ -90,7 +89,7 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
     // Membuka File Explorer
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'], 
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
     );
 
     if (result != null) {
@@ -102,10 +101,12 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
       } else {
         // Tampilkan peringatan jika di Web path-nya tidak terbaca
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: Colors.orange,
-              content: Text("Di Web, path file tidak bisa dibaca langsung.\nMohon coba di Android Emulator."),
+              content: Text(
+                "Di Web, path file tidak bisa dibaca langsung.\nMohon coba di Android Emulator.",
+              ),
               duration: Duration(seconds: 4),
             ),
           );
@@ -128,7 +129,7 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
         deskripsi: _deskripsiC.text,
         tenggatWaktu: _tenggatWaktu!,
         // --- SIMPAN PATH ---
-        attachmentPath: _attachmentPath, 
+        attachmentPath: _attachmentPath,
       );
 
       try {
@@ -209,15 +210,20 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
               SizedBox(height: 16),
 
               // --- BAGIAN EKA: UI Pilih File ---
-              Text("Lampiran (PDF/Gambar):", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                "Lampiran (PDF/Gambar):",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 8),
               Card(
                 child: ListTile(
                   leading: Icon(Icons.attach_file),
                   title: Text(
-                    _attachmentPath != null 
-                    ? _attachmentPath!.split('/').last // Ambil nama filenya saja
-                    : "Belum ada file dipilih",
+                    _attachmentPath != null
+                        ? _attachmentPath!
+                              .split('/')
+                              .last // Ambil nama filenya saja
+                        : "Belum ada file dipilih",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -234,9 +240,12 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
                       _attachmentPath = null; // Hapus file
                     });
                   },
-                  child: Text("Hapus Lampiran", style: TextStyle(color: Colors.red)),
+                  child: Text(
+                    "Hapus Lampiran",
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
-              
+
               SizedBox(height: 30),
 
               // --- Tombol Simpan ---
