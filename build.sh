@@ -18,6 +18,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# 2. Tambah .env
+echo "Generating .env from .env.example..."
+cp .env.example .env
+
 echo "Compiling drift_worker.dart to root/web..."
 dart compile js -o drift_worker.dart.js drift_worker.dart
 
