@@ -85,7 +85,7 @@ class LoginPage extends StatelessWidget {
                       await supabase.auth.signInWithOAuth(
                         OAuthProvider.google,
                         redirectTo: kIsWeb
-                            ? null
+                            ? 'http://localhost:8111/'
                             : 'tasktracking://login-callback',
                         authScreenLaunchMode: kIsWeb
                             ? LaunchMode.platformDefault
@@ -95,8 +95,8 @@ class LoginPage extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.network(
-                          'https://developers.google.com/identity/images/g-logo.png',
+                        Image.asset(
+                          'lib/images/g-logo.png',
                           width: 24,
                           height: 24,
                           fit: BoxFit.contain,

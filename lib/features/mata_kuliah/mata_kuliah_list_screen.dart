@@ -7,6 +7,7 @@ import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_mata_kuliah_screen.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_detail_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class MataKuliahListScreen extends ConsumerStatefulWidget {
   const MataKuliahListScreen({super.key});
@@ -94,8 +95,7 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
 
     final userName = user?.userMetadata?['full_name'] ?? "Pengguna";
     final userPhoto =
-        user?.userMetadata?['avatar_url'] ??
-        user?.userMetadata?['picture']; // Google kadang pakai 'picture'
+        user?.userMetadata?['avatar_url'] ?? user?.userMetadata?['picture'];
 
     return Scaffold(
       appBar: AppBar(
@@ -104,14 +104,12 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
           children: [
             // FOTO PROFIL BULET PREMIUM
             Padding(
-              padding: const EdgeInsets.only(
-                left: 12,
-              ), // <<––– MARGIN KIRI DI SINI
+              padding: const EdgeInsets.only(left: 12),
               child: CircleAvatar(
                 radius: 20,
                 backgroundColor: Colors.white.withValues(alpha: 0.1),
                 backgroundImage: userPhoto != null
-                    ? NetworkImage(userPhoto)
+                    ? CachedNetworkImageProvider(userPhoto)
                     : null,
                 child: userPhoto == null
                     ? Icon(Icons.person, color: Colors.white70)
@@ -349,7 +347,6 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
           );
         },
       ),
-
     );
   }
 }
