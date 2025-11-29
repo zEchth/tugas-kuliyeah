@@ -80,7 +80,7 @@ class SupabaseTaskRepository implements TaskRepository {
         .update(jadwal.toMap())
         .eq('id', jadwal.id);
   }
-  
+
   @override
   Future<void> deleteJadwal(String id) async {
     await client.from('jadwal_kuliah').delete().eq('id', id);
@@ -146,12 +146,34 @@ class SupabaseTaskRepository implements TaskRepository {
   }
 
   @override
-  Stream<List<ShareTugas>> watchSharedTasksReceived(String myUserId) {
-    return client
+  Stream<List<ShareTugas>> watchSharedTasksReceived(String myUserId) async* {
+    final stream = client
         .from('share_tugas')
         .stream(primaryKey: ['id'])
-        .eq('receiver_id', myUserId)
-        .map((rows) => rows.map(ShareTugas.fromMap).toList());
+        .eq('receiver_id', myUserId);
+
+    await for (final rows in stream) {
+      final List<ShareTugas> result = [];
+
+      for (final row in rows) {
+        // 🔥 Ambil nama pengirim dari tabel profiles
+        final profile = await client
+            .from('profiles')
+            .select('username')
+            .eq('id', row['sender_id'])
+            .maybeSingle();
+
+        result.add(
+          ShareTugas.fromMap({
+            ...row,
+            'username': profile?['username'] ?? profile?['data']?['username'],
+
+          }),
+        );
+      }
+
+      yield result;
+    }
   }
 
   @override
@@ -161,5 +183,28 @@ class SupabaseTaskRepository implements TaskRepository {
         .stream(primaryKey: ['id'])
         .eq('sender_id', myUserId)
         .map((rows) => rows.map(ShareTugas.fromMap).toList());
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    final rows = await client
+        .from('user_emails')
+        .select('id, email')
+        .order('email');
+
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
+  @override
+  Future<String> acceptSharedTask({
+    required String shareId,
+    required String receiverMatkulId,
+  }) async {
+    final resp = await client.rpc(
+      'accept_shared_task',
+      params: {'share_id': shareId, 'target_mata_kuliah': receiverMatkulId},
+    );
+
+    return resp as String;
   }
 }

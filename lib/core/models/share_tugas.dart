@@ -6,6 +6,8 @@ class ShareTugas {
   final DateTime createdAt;
   final String status; // enum string: "pending", "accepted" dll
 
+  final String? senderUsername;
+
   ShareTugas({
     required this.id,
     required this.taskId,
@@ -13,6 +15,7 @@ class ShareTugas {
     required this.receiverId,
     required this.createdAt,
     required this.status,
+    this.senderUsername,
   });
 
   // -------- FROM SUPABASE --------
@@ -24,6 +27,8 @@ class ShareTugas {
       receiverId: map['receiver_id'],
       createdAt: DateTime.parse(map['created_at']),
       status: map['status'],
+
+      senderUsername: map['username'],
     );
   }
 

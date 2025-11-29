@@ -17,28 +17,38 @@ class MataKuliahDetailScreen extends ConsumerWidget {
   const MataKuliahDetailScreen({super.key, required this.matkul});
 
   // Tambah
-  Future<String?> _pickReceiver(BuildContext context) async {
-    final controller = TextEditingController();
+  Future<String?> _pickReceiver(BuildContext context, WidgetRef ref) async {
+    final users = await ref.read(allUsersProvider.future);
 
     return await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Share ke Email"),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(labelText: "Masukkan email penerima"),
-        ),
-        actions: [
-          TextButton(
-            child: Text("Batal"),
-            onPressed: () => Navigator.pop(context, null),
+      builder: (context) {
+        String? selected;
+
+        return AlertDialog(
+          title: const Text("Pilih penerima"),
+          content: DropdownButtonFormField<String>(
+            decoration: const InputDecoration(labelText: "Pilih Email"),
+            items: users.map((u) {
+              final email = u['email'] as String;
+              return DropdownMenuItem<String>(value: email, child: Text(email));
+            }).toList(),
+            onChanged: (value) {
+              selected = value;
+            },
           ),
-          TextButton(
-            child: Text("Kirim"),
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text("Batal"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, selected),
+              child: const Text("Kirim"),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -166,7 +176,7 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: Icon(Icons.delete, color: Colors.white),
                         ),
-                        
+
                         onDismissed: (direction) {
                           ref
                               .read(taskRepositoryProvider)
@@ -312,6 +322,7 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                                   onPressed: () async {
                                     final receiverEmail = await _pickReceiver(
                                       context,
+                                      ref,
                                     );
                                     if (receiverEmail == null) return;
 

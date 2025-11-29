@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
 import 'package:tugas_kuliyeah/data/local/app_database.dart';
+import 'package:tugas_kuliyeah/core/models/share_tugas.dart';
+
 // import 'package:tugas_kuliyeah/data/repositories/local_task_repository.dart';
 
 // tambahan
@@ -56,3 +58,13 @@ final tugasByMatkulProvider =
       final repository = ref.watch(taskRepositoryProvider);
       return repository.watchTugasByMataKuliah(mataKuliahId);
     });
+
+final allUsersProvider = FutureProvider((ref) async {
+  final repo = ref.watch(taskRepositoryProvider);
+  return repo.getAllUsers();
+});
+
+final inboxSharedTasksProvider = StreamProvider<List<ShareTugas>>((ref) {
+  final uid = Supabase.instance.client.auth.currentUser!.id;
+  return ref.watch(taskRepositoryProvider).watchSharedTasksReceived(uid);
+});

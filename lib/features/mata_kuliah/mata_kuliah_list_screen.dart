@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:tugas_kuliyeah/features/tugas/inbox_shared_task_screen.dart';
 
 class MataKuliahListScreen extends ConsumerStatefulWidget {
   const MataKuliahListScreen({super.key});
@@ -23,17 +24,6 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
   @override
   void initState() {
     super.initState();
-
-    print("CLIENT ID: ${Supabase.instance.client.auth.currentUser?.id}");
-    print(
-      "BACKEND UID: ${Supabase.instance.client.auth.currentSession?.user.id}",
-    );
-    print(
-      "TOKEN: ${Supabase.instance.client.auth.currentSession?.accessToken}",
-    );
-
-    print("CURRENT USER ID:");
-    print(Supabase.instance.client.auth.currentUser?.id);
 
     // Panggil fungsi pengecekan platform saat layar dibuka
     _checkPlatformAndPermission();
@@ -157,7 +147,20 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
         ),
 
         actions: [
-          // Tombol logout
+          // ====== INBOX BUTTON DI SINI ======
+          IconButton(
+            icon: const Icon(Icons.inbox),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const InboxSharedTaskScreen(),
+                ),
+              );
+            },
+          ),
+
+          // ====== LOGOUT BUTTON ======
           TweenAnimationBuilder<double>(
             duration: const Duration(milliseconds: 200),
             tween: Tween(begin: 1.0, end: 1.0),

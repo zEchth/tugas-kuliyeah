@@ -69,4 +69,11 @@ abstract class TaskRepository {
 
   Stream<List<ShareTugas>> watchSharedTasksReceived(String myUserId);
   Stream<List<ShareTugas>> watchSharedTasksSent(String myUserId);
+
+  Future<List<Map<String, dynamic>>> getAllUsers();
+
+  Future<void> acceptSharedTask({
+    required String shareId,
+    required String receiverMatkulId,
+  });
 }
