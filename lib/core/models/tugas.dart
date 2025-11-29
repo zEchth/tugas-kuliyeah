@@ -29,6 +29,7 @@ class Tugas {
   final DateTime dueAt; // tenggat waktu
   final DateTime createdAt;
   final String mataKuliahId;
+  // --- BAGIAN EKA (Fitur 5) ---
   final String? attachmentPath; 
 
   Tugas({
@@ -53,7 +54,7 @@ class Tugas {
       dueAt: DateTime.parse(map['due_at']),
       createdAt: DateTime.parse(map['created_at']),
       mataKuliahId: map['mata_kuliah_id'],
-      attachmentPath: map['attachmentPath'], // camelCase ngikut DB
+      attachmentPath: map['attachment_path'], 
     );
   }
 
@@ -67,7 +68,7 @@ class Tugas {
       'due_at': dueAt.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'mata_kuliah_id': mataKuliahId,
-      'attachmentPath': attachmentPath, // camelCase
+      'attachment_path': attachmentPath, 
     };
   }
 }

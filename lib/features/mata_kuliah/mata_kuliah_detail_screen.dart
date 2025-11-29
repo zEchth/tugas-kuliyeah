@@ -166,16 +166,7 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: Icon(Icons.delete, color: Colors.white),
                         ),
-
-                        // confirmDismiss: (direction) async {
-                        //   // Hapus di Supabase
-                        //   await ref
-                        //       .read(taskRepositoryProvider)
-                        //       .deleteJadwal(jadwal.id);
-
-                        //   // Izinkan Dismissible menghilangkan item dari UI
-                        //   return true;
-                        // },
+                        
                         onDismissed: (direction) {
                           ref
                               .read(taskRepositoryProvider)
