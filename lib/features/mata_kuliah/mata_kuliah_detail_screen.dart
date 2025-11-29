@@ -1,9 +1,10 @@
 // lib/features/mata_kuliah/mata_kuliah_detail_screen.dart
-import 'package:flutter/foundation.dart' show kIsWeb; // [AUDITOR] Penting untuk deteksi platform
+import 'package:flutter/foundation.dart'
+    show kIsWeb; // [AUDITOR] Penting untuk deteksi platform
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart'; 
-import 'package:open_filex/open_filex.dart'; 
+import 'package:intl/intl.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart'; // [AUDITOR] Tambahan wajib untuk Web
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
 import 'package:tugas_kuliyeah/core/providers.dart';
@@ -15,6 +16,32 @@ class MataKuliahDetailScreen extends ConsumerWidget {
   final core_model.MataKuliah matkul;
   const MataKuliahDetailScreen({super.key, required this.matkul});
 
+  // Tambah
+  Future<String?> _pickReceiver(BuildContext context) async {
+    final controller = TextEditingController();
+
+    return await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Share ke Email"),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(labelText: "Masukkan email penerima"),
+        ),
+        actions: [
+          TextButton(
+            child: Text("Batal"),
+            onPressed: () => Navigator.pop(context, null),
+          ),
+          TextButton(
+            child: Text("Kirim"),
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+          ),
+        ],
+      ),
+    );
+  }
+
   // --- BAGIAN EKA: Fungsi Buka File dengan Logika Cross-Platform ---
   void _openAttachment(BuildContext context, String path) async {
     debugPrint("[DEBUG] Mencoba membuka file di path: $path");
@@ -25,13 +52,13 @@ class MataKuliahDetailScreen extends ConsumerWidget {
         // Di Web, path dari file_picker biasanya berupa Blob URL (blob:http://...)
         // Kita harus menggunakan url_launcher untuk membukanya di tab browser.
         final Uri uri = Uri.parse(path);
-        
-        // Kita coba launch langsung. Browser modern mungkin memblokir ini jika 
+
+        // Kita coba launch langsung. Browser modern mungkin memblokir ini jika
         // tidak dipicu langsung oleh user gesture, tapi onTap adalah user gesture.
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri);
         } else {
-          // Fallback: Terkadang canLaunchUrl return false untuk blob, 
+          // Fallback: Terkadang canLaunchUrl return false untuk blob,
           // tapi launchUrl tetap berhasil. Kita coba paksa.
           debugPrint("[DEBUG] canLaunchUrl false, mencoba paksa launchUrl...");
           await launchUrl(uri);
@@ -40,7 +67,9 @@ class MataKuliahDetailScreen extends ConsumerWidget {
         // [KONSTRUKTOR] Logika Mobile (Android/iOS)
         // OpenFilex bekerja sangat baik di mobile dengan path fisik storage.
         final result = await OpenFilex.open(path);
-        debugPrint("[DEBUG] Hasil OpenFilex: ${result.type} - ${result.message}");
+        debugPrint(
+          "[DEBUG] Hasil OpenFilex: ${result.type} - ${result.message}",
+        );
 
         if (result.type != ResultType.done) {
           throw Exception(result.message);
@@ -137,11 +166,22 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: Icon(Icons.delete, color: Colors.white),
                         ),
+
+                        // confirmDismiss: (direction) async {
+                        //   // Hapus di Supabase
+                        //   await ref
+                        //       .read(taskRepositoryProvider)
+                        //       .deleteJadwal(jadwal.id);
+
+                        //   // Izinkan Dismissible menghilangkan item dari UI
+                        //   return true;
+                        // },
                         onDismissed: (direction) {
                           ref
                               .read(taskRepositoryProvider)
                               .deleteJadwal(jadwal.id);
                         },
+
                         child: Card(
                           child: ListTile(
                             title: Text("Hari: ${jadwal.hari}"),
@@ -196,16 +236,19 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                       ),
                     );
                   }
+
                   return ListView.builder(
                     itemCount: listTugas.length,
                     itemBuilder: (context, index) {
                       final tugas = listTugas[index];
                       final tenggat = DateFormat(
                         'dd MMM yyyy, HH:mm',
-                      ).format(tugas.tenggatWaktu);
+                      ).format(tugas.dueAt);
 
                       // Cek apakah ada attachment
-                      final bool hasAttachment = tugas.attachmentPath != null && tugas.attachmentPath!.isNotEmpty;
+                      final bool hasAttachment =
+                          tugas.attachmentPath != null &&
+                          tugas.attachmentPath!.isNotEmpty;
 
                       // --- Delete Tugas (Geser) ---
                       return Dismissible(
@@ -226,47 +269,96 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                           color: Colors.blueGrey[900], // Bedakan warna Card
                           child: ListTile(
                             title: Text(
-                              tugas.jenis,
+                              tugas.type,
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("${tugas.deskripsi}\nTenggat: $tenggat"),
+                                Text("${tugas.note}\nTenggat: $tenggat"),
                                 // Jika ada file, tampilkan indikator
                                 if (hasAttachment)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 4.0),
                                     child: Row(
                                       children: [
-                                        Icon(Icons.attach_file, size: 14, color: Colors.blueAccent),
-                                        Text(" Ada Lampiran", style: TextStyle(color: Colors.blueAccent, fontSize: 12))
+                                        Icon(
+                                          Icons.attach_file,
+                                          size: 14,
+                                          color: Colors.blueAccent,
+                                        ),
+                                        Text(
+                                          " Ada Lampiran",
+                                          style: TextStyle(
+                                            color: Colors.blueAccent,
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                  )
+                                  ),
                               ],
                             ),
                             isThreeLine: true,
                             // Jika ada file, tap pada list akan membuka file
                             // Jika tidak, tidak melakukan apa-apa
-                            onTap: hasAttachment ? () => _openAttachment(context, tugas.attachmentPath!) : null,
-                            trailing: IconButton(
-                              icon: Icon(
-                                Icons.edit_note,
-                                color: Colors.grey[400],
-                              ),
-                              tooltip: "Edit Tugas",
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AddEditTugasScreen(
-                                      mataKuliahId: matkul.id,
-                                      tugas: tugas, // Kirim data tugas
-                                    ),
+                            onTap: hasAttachment
+                                ? () => _openAttachment(
+                                    context,
+                                    tugas.attachmentPath!,
+                                  )
+                                : null,
+
+                            // ubah
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.share,
+                                    color: Colors.blueAccent,
                                   ),
-                                );
-                              },
+                                  onPressed: () async {
+                                    final receiverEmail = await _pickReceiver(
+                                      context,
+                                    );
+                                    if (receiverEmail == null) return;
+
+                                    await ref
+                                        .read(taskRepositoryProvider)
+                                        .shareTugas(
+                                          tugasId: tugas.id,
+                                          receiverEmail: receiverEmail,
+                                        );
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          "Tugas dibagikan ke $receiverEmail",
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.edit_note,
+                                    color: Colors.grey[400],
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            AddEditTugasScreen(
+                                              mataKuliahId: matkul.id,
+                                              tugas: tugas,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                         ),

@@ -82,15 +82,21 @@ class LoginPage extends StatelessWidget {
                       shadowColor: Colors.black.withValues(alpha: 0.4),
                     ),
                     onPressed: () async {
-                      await supabase.auth.signInWithOAuth(
-                        OAuthProvider.google,
-                        redirectTo: kIsWeb
-                            ? 'http://localhost:8111/'
-                            : 'tasktracking://login-callback',
-                        authScreenLaunchMode: kIsWeb
-                            ? LaunchMode.platformDefault
-                            : LaunchMode.externalApplication,
-                      );
+                      try {
+                        await supabase.auth.signInWithOAuth(
+                          OAuthProvider.google,
+                          redirectTo: kIsWeb
+                              ? 'http://localhost:8111/' 
+                              : 'tasktracking://login-callback',
+                          authScreenLaunchMode: kIsWeb
+                              ? LaunchMode.platformDefault
+                              : LaunchMode.externalApplication,
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Login gagal: $e")),
+                        );
+                      }
                     },
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,

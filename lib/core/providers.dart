@@ -1,13 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
 import 'package:tugas_kuliyeah/data/local/app_database.dart';
-import 'package:tugas_kuliyeah/data/repositories/local_task_repository.dart';
+// import 'package:tugas_kuliyeah/data/repositories/local_task_repository.dart';
+
+// tambahan
+import 'package:tugas_kuliyeah/data/remote/repositories/supabase_task_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 // IMPORT SERVICE
 import 'package:tugas_kuliyeah/services/notification_service.dart';
 
 import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
+
+final userProvider = Provider<User?>((ref) {
+  return Supabase.instance.client.auth.currentUser;
+});
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   return AppDatabase();
@@ -24,7 +33,8 @@ final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   final notifService = ref.read(notificationServiceProvider);
 
   // MASUKKAN KE REPOSITORY
-  return LocalTaskRepository(db, notifService);
+  // return LocalTaskRepository(db, notifService);
+  return SupabaseTaskRepository(Supabase.instance.client);
 });
 
 // ... existing code ... (sisanya sama)

@@ -9,6 +9,8 @@ import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_detail_screen.da
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class MataKuliahListScreen extends ConsumerStatefulWidget {
   const MataKuliahListScreen({super.key});
 
@@ -21,6 +23,18 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
   @override
   void initState() {
     super.initState();
+
+    print("CLIENT ID: ${Supabase.instance.client.auth.currentUser?.id}");
+    print(
+      "BACKEND UID: ${Supabase.instance.client.auth.currentSession?.user.id}",
+    );
+    print(
+      "TOKEN: ${Supabase.instance.client.auth.currentSession?.accessToken}",
+    );
+
+    print("CURRENT USER ID:");
+    print(Supabase.instance.client.auth.currentUser?.id);
+
     // Panggil fungsi pengecekan platform saat layar dibuka
     _checkPlatformAndPermission();
   }
@@ -194,9 +208,19 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
+
+                              // masalah
                               onPressed: () async {
                                 Navigator.pop(context);
-                                await Supabase.instance.client.auth.signOut();
+                                try {
+                                  ref.invalidate(allMataKuliahProvider);
+                                  ref.invalidate(jadwalByMatkulProvider);
+                                  ref.invalidate(tugasByMatkulProvider);
+                                  ref.invalidate(taskRepositoryProvider);
+                                  await Supabase.instance.client.auth.signOut();
+                                } catch (e) {
+                                  print("Logout error: $e");
+                                }
                               },
                               child: const Text(
                                 "Logout",
