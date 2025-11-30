@@ -68,3 +68,34 @@ final inboxSharedTasksProvider = StreamProvider<List<ShareTugas>>((ref) {
   final uid = Supabase.instance.client.auth.currentUser!.id;
   return ref.watch(taskRepositoryProvider).watchSharedTasksReceived(uid);
 });
+
+// [SOLUSI v3.0] Menggunakan Notifier API (pengganti StateProvider Legacy)
+// Class ini menangani logic penambahan dan penghapusan ID sementara
+class TempDeletedItemsNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() {
+    // Initial state adalah Set kosong
+    return const {};
+  }
+
+  // Method untuk menambah ID ke dalam ignore list
+  void add(String id) {
+    state = {...state, id};
+  }
+
+  // Method untuk menghapus ID dari ignore list (rollback)
+  void remove(String id) {
+    state = {...state}..remove(id);
+  }
+}
+
+// Definisikan Provider menggunakan NotifierProvider
+final tempDeletedJadwalProvider =
+    NotifierProvider<TempDeletedItemsNotifier, Set<String>>(
+      TempDeletedItemsNotifier.new,
+    );
+
+final tempDeletedTugasProvider =
+    NotifierProvider<TempDeletedItemsNotifier, Set<String>>(
+      TempDeletedItemsNotifier.new,
+    );

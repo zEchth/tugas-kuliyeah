@@ -24,10 +24,10 @@ class MataKuliahDetailScreen extends ConsumerStatefulWidget {
 
 class _MataKuliahDetailScreenState
     extends ConsumerState<MataKuliahDetailScreen> {
-  // [SOLUSI] Local Temporary Filters
-  // Kita butuh 2 set terpisah karena di screen ini ada 2 list berbeda.
-  final Set<String> _tempDeletedJadwalIds = {};
-  final Set<String> _tempDeletedTugasIds = {};
+  // [SOLUSI] Local Temporary Filters -> DIPINDAHKAN KE GLOBAL PROVIDER
+  // Kita tidak lagi menggunakan Set lokal agar state tetap tersimpan saat pindah halaman.
+  // final Set<String> _tempDeletedJadwalIds = {};
+  // final Set<String> _tempDeletedTugasIds = {};
 
   // Tambah
   Future<String?> _pickReceiver(BuildContext context, WidgetRef ref) async {
@@ -121,6 +121,10 @@ class _MataKuliahDetailScreenState
     // --- AMBIL STREAM TUGAS ---
     final asyncTugas = ref.watch(tugasByMatkulProvider(widget.matkul.id));
 
+    // [SOLUSI] Ambil Global Ignore List dari Provider
+    final ignoredJadwalIds = ref.watch(tempDeletedJadwalProvider);
+    final ignoredTugasIds = ref.watch(tempDeletedTugasProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.matkul.nama),
@@ -166,9 +170,9 @@ class _MataKuliahDetailScreenState
                 loading: () => Center(child: CircularProgressIndicator()),
                 error: (err, stack) => Center(child: Text("Error: $err")),
                 data: (listJadwal) {
-                  // [SOLUSI] Filter List Jadwal
+                  // [SOLUSI] Filter List Jadwal menggunakan Global Provider
                   final filteredJadwal = listJadwal.where((j) {
-                    return !_tempDeletedJadwalIds.contains(j.id);
+                    return !ignoredJadwalIds.contains(j.id);
                   }).toList();
 
                   if (filteredJadwal.isEmpty) {
@@ -200,21 +204,22 @@ class _MataKuliahDetailScreenState
                         ),
 
                         onDismissed: (direction) async {
-                          // [SOLUSI] Update UI lokal Jadwal
-                          setState(() {
-                            _tempDeletedJadwalIds.add(jadwal.id);
-                          });
+                          // [SOLUSI v3.0] Panggil method add() pada Notifier
+                          ref
+                              .read(tempDeletedJadwalProvider.notifier)
+                              .add(jadwal.id);
 
                           try {
                             await ref
                                 .read(taskRepositoryProvider)
                                 .deleteJadwal(jadwal.id);
                           } catch (e) {
-                            // [SOLUSI] Rollback Jadwal jika gagal
+                            // [SOLUSI v3.0] Panggil method remove() pada Notifier (Rollback)
+                            ref
+                                .read(tempDeletedJadwalProvider.notifier)
+                                .remove(jadwal.id);
+
                             if (mounted) {
-                              setState(() {
-                                _tempDeletedJadwalIds.remove(jadwal.id);
-                              });
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text("Gagal hapus: $e")),
                               );
@@ -269,9 +274,9 @@ class _MataKuliahDetailScreenState
                 loading: () => Center(child: CircularProgressIndicator()),
                 error: (err, stack) => Center(child: Text("Error: $err")),
                 data: (listTugas) {
-                  // [SOLUSI] Filter List Tugas
+                  // [SOLUSI] Filter List Tugas menggunakan Global Provider
                   final filteredTugas = listTugas.where((t) {
-                    return !_tempDeletedTugasIds.contains(t.id);
+                    return !ignoredTugasIds.contains(t.id);
                   }).toList();
 
                   if (filteredTugas.isEmpty) {
@@ -306,21 +311,22 @@ class _MataKuliahDetailScreenState
                           child: Icon(Icons.delete, color: Colors.white),
                         ),
                         onDismissed: (direction) async {
-                          // [SOLUSI] Update UI lokal Tugas
-                          setState(() {
-                            _tempDeletedTugasIds.add(tugas.id);
-                          });
+                          // [SOLUSI v3.0] Panggil method add() pada Notifier
+                          ref
+                              .read(tempDeletedTugasProvider.notifier)
+                              .add(tugas.id);
 
                           try {
                             await ref
                                 .read(taskRepositoryProvider)
                                 .deleteTugas(tugas.id);
                           } catch (e) {
-                            // [SOLUSI] Rollback Tugas jika gagal
+                            // [SOLUSI v3.0] Panggil method remove() pada Notifier (Rollback)
+                            ref
+                                .read(tempDeletedTugasProvider.notifier)
+                                .remove(tugas.id);
+
                             if (mounted) {
-                              setState(() {
-                                _tempDeletedTugasIds.remove(tugas.id);
-                              });
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text("Gagal hapus: $e")),
                               );
