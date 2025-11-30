@@ -142,23 +142,4 @@ class NotificationService {
     if (kIsWeb) return;
     await flutterLocalNotificationsPlugin.cancel(id);
   }
-
-  // === TEST NOTIF LANGSUNG (TIDAK PAKAI ALARM) ===
-  // Future<void> testImmediateNotif() async {
-  //   await flutterLocalNotificationsPlugin.show(
-  //     9999,
-  //     "Test Notifikasi",
-  //     "Kalau ini muncul berarti notif kamu hidup",
-  //     const NotificationDetails(
-  //       android: AndroidNotificationDetails(
-  //         'test_channel',
-  //         'Test Channel',
-  //         channelDescription: 'Channel untuk testing notifikasi',
-  //         importance: Importance.max,
-  //         priority: Priority.high,
-  //       ),
-  //       iOS: DarwinNotificationDetails(),
-  //     ),
-  //   );
-  // }
 }

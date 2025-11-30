@@ -1,10 +1,10 @@
 // lib/features/mata_kuliah/add_edit_jadwal_screen.dart
-import 'dart:math';
+// import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
 import 'package:tugas_kuliyeah/core/providers.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 // import 'package:intl/intl.dart'; // Untuk format TimeOfDay
 
@@ -82,8 +82,6 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
   }
 
   Future<void> _submitForm() async {
-    final supabase = Supabase.instance.client;
-
     if (!_formKey.currentState!.validate() ||
         _selectedHari == null ||
         _jamMulai == null ||

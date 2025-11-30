@@ -56,63 +56,6 @@ class MyApp extends ConsumerWidget {
   }
 }
 
-// class AuthGate extends ConsumerStatefulWidget {
-//   const AuthGate({super.key});
-
-//   @override
-//   ConsumerState<AuthGate> createState() => _AuthGateState();
-// }
-
-// class _AuthGateState extends ConsumerState<AuthGate> {
-//   Session? _session;
-//   bool _initialized = false;
-
-//   @override
-//   void initState() {
-//     super.initState();
-
-//     _session = Supabase.instance.client.auth.currentSession;
-
-//     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-//       if (!mounted) return;
-
-//       // reset provider tiap user berubah
-//       _invalidateProviders();
-
-//       setState(() {
-//         _session = data.session;
-//       });
-//     });
-//   }
-
-//   @override
-//   void didChangeDependencies() {
-//     super.didChangeDependencies();
-
-//     // cuma dijalankan sekali
-//     if (!_initialized) {
-//       _invalidateProviders();
-//       _initialized = true;
-//     }
-//   }
-
-//   void _invalidateProviders() {
-//     ref.invalidate(allMataKuliahProvider);
-//     ref.invalidate(jadwalByMatkulProvider);
-//     ref.invalidate(tugasByMatkulProvider);
-//     ref.invalidate(taskRepositoryProvider);
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     if (_session == null) {
-//       return LoginPage();
-//     }
-
-//     return const MataKuliahListScreen();
-//   }
-// }
-
 class AuthGate extends ConsumerStatefulWidget {
   const AuthGate({super.key});
 
@@ -122,12 +65,17 @@ class AuthGate extends ConsumerStatefulWidget {
 
 class _AuthGateState extends ConsumerState<AuthGate> {
   Session? _session;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
 
     _session = Supabase.instance.client.auth.currentSession;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() => _loading = false);
+    });
 
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (!mounted) return;
@@ -146,6 +94,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    
     if (_session == null) {
       return LoginPage();
     }
