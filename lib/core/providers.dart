@@ -90,12 +90,21 @@ class TempDeletedItemsNotifier extends Notifier<Set<String>> {
 }
 
 // Definisikan Provider menggunakan NotifierProvider
+
+// 1. Untuk Jadwal
 final tempDeletedJadwalProvider =
     NotifierProvider<TempDeletedItemsNotifier, Set<String>>(
       TempDeletedItemsNotifier.new,
     );
 
+// 2. Untuk Tugas
 final tempDeletedTugasProvider =
+    NotifierProvider<TempDeletedItemsNotifier, Set<String>>(
+      TempDeletedItemsNotifier.new,
+    );
+
+// 3. Untuk Mata Kuliah (BARU)
+final tempDeletedMataKuliahProvider =
     NotifierProvider<TempDeletedItemsNotifier, Set<String>>(
       TempDeletedItemsNotifier.new,
     );

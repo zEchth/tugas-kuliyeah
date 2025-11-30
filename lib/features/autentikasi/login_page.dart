@@ -43,7 +43,7 @@ class LoginPage extends StatelessWidget {
 
                 // JUDUL
                 const Text(
-                  "Task Tracking",
+                  "Task Tracker",
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
