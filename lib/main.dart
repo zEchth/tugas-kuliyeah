@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tugas_kuliyeah/core/providers.dart';
 // IMPORT SERVICE
 import 'package:tugas_kuliyeah/services/notification_service.dart';
-import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_list_screen.dart';
+// [UPDATE] Import MainNavigationScreen
+import 'package:tugas_kuliyeah/main_navigation_screen.dart';
 
 void main() async {
   // Pastikan binding siap sebelum menjalankan APP
@@ -102,6 +103,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       return LoginPage();
     }
 
-    return const MataKuliahListScreen();
+    // [UPDATE] Arahkan ke MainNavigationScreen, bukan MataKuliahListScreen langsung
+    return const MainNavigationScreen();
   }
 }
