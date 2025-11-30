@@ -12,9 +12,22 @@ import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_jadwal_screen.dart'
 import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_mata_kuliah_screen.dart';
 import 'package:tugas_kuliyeah/features/tugas/add_edit_tugas_screen.dart';
 
-class MataKuliahDetailScreen extends ConsumerWidget {
+// [SOLUSI] Ubah ke ConsumerStatefulWidget agar bisa pakai setState untuk local filtering
+class MataKuliahDetailScreen extends ConsumerStatefulWidget {
   final core_model.MataKuliah matkul;
   const MataKuliahDetailScreen({super.key, required this.matkul});
+
+  @override
+  ConsumerState<MataKuliahDetailScreen> createState() =>
+      _MataKuliahDetailScreenState();
+}
+
+class _MataKuliahDetailScreenState
+    extends ConsumerState<MataKuliahDetailScreen> {
+  // [SOLUSI] Local Temporary Filters
+  // Kita butuh 2 set terpisah karena di screen ini ada 2 list berbeda.
+  final Set<String> _tempDeletedJadwalIds = {};
+  final Set<String> _tempDeletedTugasIds = {};
 
   // Tambah
   Future<String?> _pickReceiver(BuildContext context, WidgetRef ref) async {
@@ -101,15 +114,16 @@ class MataKuliahDetailScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     // Ambil stream jadwal SPESIFIK untuk matkul ini
-    final asyncJadwal = ref.watch(jadwalByMatkulProvider(matkul.id));
+    // Gunakan widget.matkul karena sekarang kita di dalam State class
+    final asyncJadwal = ref.watch(jadwalByMatkulProvider(widget.matkul.id));
     // --- AMBIL STREAM TUGAS ---
-    final asyncTugas = ref.watch(tugasByMatkulProvider(matkul.id));
+    final asyncTugas = ref.watch(tugasByMatkulProvider(widget.matkul.id));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(matkul.nama),
+        title: Text(widget.matkul.nama),
         actions: [
           IconButton(
             icon: Icon(Icons.edit),
@@ -118,7 +132,8 @@ class MataKuliahDetailScreen extends ConsumerWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AddEditMataKuliahScreen(matkul: matkul),
+                  builder: (context) =>
+                      AddEditMataKuliahScreen(matkul: widget.matkul),
                 ),
               );
             },
@@ -131,8 +146,10 @@ class MataKuliahDetailScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // --- Info Mata Kuliah ---
-            Text("Dosen: ${matkul.dosen}", style: TextStyle(fontSize: 18)),
-            Text("SKS: ${matkul.sks}", style: TextStyle(fontSize: 18)),
+            Text(
+                "Dosen: ${widget.matkul.dosen}",
+                style: TextStyle(fontSize: 18)),
+            Text("SKS: ${widget.matkul.sks}", style: TextStyle(fontSize: 18)),
             Divider(height: 30),
 
             // --- Judul Daftar Jadwal ---
@@ -149,7 +166,12 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                 loading: () => Center(child: CircularProgressIndicator()),
                 error: (err, stack) => Center(child: Text("Error: $err")),
                 data: (listJadwal) {
-                  if (listJadwal.isEmpty) {
+                  // [SOLUSI] Filter List Jadwal
+                  final filteredJadwal = listJadwal.where((j) {
+                    return !_tempDeletedJadwalIds.contains(j.id);
+                  }).toList();
+
+                  if (filteredJadwal.isEmpty) {
                     return Center(
                       child: Text(
                         "Belum ada jadwal.\nTekan (+) di bawah untuk menambah.",
@@ -157,9 +179,9 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                     );
                   }
                   return ListView.builder(
-                    itemCount: listJadwal.length,
+                    itemCount: filteredJadwal.length,
                     itemBuilder: (context, index) {
-                      final jadwal = listJadwal[index];
+                      final jadwal = filteredJadwal[index];
                       // Format jam (sederhana)
                       final jamMulai =
                           "${jadwal.jamMulai.hour.toString().padLeft(2, '0')}:${jadwal.jamMulai.minute.toString().padLeft(2, '0')}";
@@ -177,10 +199,27 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                           child: Icon(Icons.delete, color: Colors.white),
                         ),
 
-                        onDismissed: (direction) {
-                          ref
-                              .read(taskRepositoryProvider)
-                              .deleteJadwal(jadwal.id);
+                        onDismissed: (direction) async {
+                          // [SOLUSI] Update UI lokal Jadwal
+                          setState(() {
+                            _tempDeletedJadwalIds.add(jadwal.id);
+                          });
+
+                          try {
+                            await ref
+                                .read(taskRepositoryProvider)
+                                .deleteJadwal(jadwal.id);
+                          } catch (e) {
+                            // [SOLUSI] Rollback Jadwal jika gagal
+                            if (mounted) {
+                              setState(() {
+                                _tempDeletedJadwalIds.remove(jadwal.id);
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Gagal hapus: $e")),
+                              );
+                            }
+                          }
                         },
 
                         child: Card(
@@ -200,7 +239,7 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => AddEditJadwalScreen(
-                                      mataKuliahId: matkul.id,
+                                      mataKuliahId: widget.matkul.id,
                                       jadwal: jadwal, // Kirim data jadwal
                                     ),
                                   ),
@@ -230,7 +269,12 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                 loading: () => Center(child: CircularProgressIndicator()),
                 error: (err, stack) => Center(child: Text("Error: $err")),
                 data: (listTugas) {
-                  if (listTugas.isEmpty) {
+                  // [SOLUSI] Filter List Tugas
+                  final filteredTugas = listTugas.where((t) {
+                    return !_tempDeletedTugasIds.contains(t.id);
+                  }).toList();
+
+                  if (filteredTugas.isEmpty) {
                     return Center(
                       child: Text(
                         "Belum ada tugas.\nTekan (+) di bawah untuk menambah.",
@@ -239,9 +283,9 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                   }
 
                   return ListView.builder(
-                    itemCount: listTugas.length,
+                    itemCount: filteredTugas.length,
                     itemBuilder: (context, index) {
-                      final tugas = listTugas[index];
+                      final tugas = filteredTugas[index];
                       final tenggat = DateFormat(
                         'dd MMM yyyy, HH:mm',
                       ).format(tugas.dueAt);
@@ -261,10 +305,27 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: Icon(Icons.delete, color: Colors.white),
                         ),
-                        onDismissed: (direction) {
-                          ref
-                              .read(taskRepositoryProvider)
-                              .deleteTugas(tugas.id);
+                        onDismissed: (direction) async {
+                          // [SOLUSI] Update UI lokal Tugas
+                          setState(() {
+                            _tempDeletedTugasIds.add(tugas.id);
+                          });
+
+                          try {
+                            await ref
+                                .read(taskRepositoryProvider)
+                                .deleteTugas(tugas.id);
+                          } catch (e) {
+                            // [SOLUSI] Rollback Tugas jika gagal
+                            if (mounted) {
+                              setState(() {
+                                _tempDeletedTugasIds.remove(tugas.id);
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Gagal hapus: $e")),
+                              );
+                            }
+                          }
                         },
                         child: Card(
                           color: Colors.blueGrey[900], // Bedakan warna Card
@@ -353,7 +414,7 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             AddEditTugasScreen(
-                                              mataKuliahId: matkul.id,
+                                              mataKuliahId: widget.matkul.id,
                                               tugas: tugas,
                                             ),
                                       ),
@@ -387,7 +448,7 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      AddEditTugasScreen(mataKuliahId: matkul.id),
+                      AddEditTugasScreen(mataKuliahId: widget.matkul.id),
                 ),
               );
             },
@@ -402,7 +463,7 @@ class MataKuliahDetailScreen extends ConsumerWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      AddEditJadwalScreen(mataKuliahId: matkul.id),
+                      AddEditJadwalScreen(mataKuliahId: widget.matkul.id),
                 ),
               );
             },

@@ -20,6 +20,10 @@ class MataKuliahListScreen extends ConsumerStatefulWidget {
 }
 
 class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
+  // [SOLUSI] Local Temporary Filter
+  // Menyimpan ID item yang sedang dihapus secara visual menunggu konfirmasi DB.
+  final Set<String> _tempDeletedIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -296,7 +300,13 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
         loading: () => Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text("Error: $err")),
         data: (listMataKuliah) {
-          if (listMataKuliah.isEmpty) {
+          // [SOLUSI] Filter list menggunakan _tempDeletedIds
+          // Ini mencegah Dismissible dirender ulang untuk item yang sedang dihapus
+          final filteredList = listMataKuliah.where((matkul) {
+            return !_tempDeletedIds.contains(matkul.id);
+          }).toList();
+
+          if (filteredList.isEmpty) {
             return Center(
               child: Text(
                 "Belum ada mata kuliah.\nTekan (+) untuk menambah.",
@@ -306,9 +316,10 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
           }
 
           return ListView.builder(
-            itemCount: listMataKuliah.length,
+            // Gunakan filteredList.length, bukan listMataKuliah.length
+            itemCount: filteredList.length,
             itemBuilder: (context, index) {
-              final matkul = listMataKuliah[index];
+              final matkul = filteredList[index];
 
               // --- Delete (Geser) ---
               return Dismissible(
@@ -320,12 +331,33 @@ class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Icon(Icons.delete, color: Colors.white),
                 ),
-                onDismissed: (direction) {
-                  // Panggil fungsi Delete dari repository
-                  ref.read(taskRepositoryProvider).deleteMataKuliah(matkul.id);
+                onDismissed: (direction) async {
+                  // [SOLUSI] Update state lokal DULUAN
+                  // Agar item hilang dari tree saat ini juga (memuaskan Dismissible)
+                  setState(() {
+                    _tempDeletedIds.add(matkul.id);
+                  });
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("${matkul.nama} dihapus")),
                   );
+
+                  try {
+                    // Panggil fungsi Delete dari repository (Async)
+                    await ref.read(taskRepositoryProvider).deleteMataKuliah(matkul.id);
+                    // Jika sukses, Stream Supabase akan update otomatis nanti.
+                    // Saat Stream update, ID matkul tersebut akan hilang permanen dari listMataKuliah.
+                  } catch (e) {
+                    // [SOLUSI] Jika Gagal, kembalikan item ke UI (Rollback)
+                    if (mounted) {
+                      setState(() {
+                        _tempDeletedIds.remove(matkul.id);
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Gagal menghapus: $e")),
+                      );
+                    }
+                  }
                 },
                 child: ListTile(
                   title: Text(matkul.nama),
