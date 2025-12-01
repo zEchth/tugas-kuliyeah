@@ -43,6 +43,9 @@ class Tugass extends Table {
   // nullable() artinya boleh kosong (tidak wajib upload file)
   TextColumn get attachmentPath => text().nullable()();
 
+  // [BARU] Kolom Status Pengerjaan
+  TextColumn get status => text().withDefault(const Constant('Belum Dikerjakan'))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -54,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Naikkan versi schema karena kita menambah kolom baru
   @override
-  int get schemaVersion => 2; 
+  int get schemaVersion => 3; // Naik ke v3 karena tambah status
 
   // Migrasi sederhana: Jika versi naik, database lama akan dihapus & dibuat ulang.
   // Untuk production, perlu logic migrasi yang lebih kompleks (ALTER TABLE).
@@ -68,6 +71,9 @@ class AppDatabase extends _$AppDatabase {
         // atau cukup uninstall aplikasi di emulator sebelum run ulang.
          if (from < 2) {
            await m.addColumn(tugass, tugass.attachmentPath);
+         }
+         if (from < 3) {
+           await m.addColumn(tugass, tugass.status);
          }
       },
     );

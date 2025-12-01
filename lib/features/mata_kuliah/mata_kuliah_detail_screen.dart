@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart'; // [AUDITOR] Tambahan wajib untuk Web
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
+import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
 import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_jadwal_screen.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_mata_kuliah_screen.dart';
@@ -113,6 +114,54 @@ class _MataKuliahDetailScreenState
     }
   }
 
+  // [BARU] Fungsi update status tugas
+  void _updateTaskStatus(core_model.Tugas tugas) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        final statuses = ["Belum Dikerjakan", "Dalam Pengerjaan", "Selesai"];
+        return Container(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Ubah Status Pengerjaan", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              SizedBox(height: 16),
+              ...statuses.map((status) {
+                return ListTile(
+                  title: Text(status),
+                  leading: status == tugas.status ? Icon(Icons.check, color: Colors.green) : null,
+                  onTap: () async {
+                    Navigator.pop(context); // Tutup sheet
+                    
+                    // Update di database
+                    try {
+                      final updatedTugas = tugas.copyWith(status: status);
+                      await ref.read(taskRepositoryProvider).updateTugas(updatedTugas);
+                      
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Status diubah ke $status")),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Gagal update: $e")),
+                        );
+                      }
+                    }
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Ambil stream jadwal SPESIFIK untuk matkul ini
@@ -191,6 +240,9 @@ class _MataKuliahDetailScreenState
                           "${jadwal.jamMulai.hour.toString().padLeft(2, '0')}:${jadwal.jamMulai.minute.toString().padLeft(2, '0')}";
                       final jamSelesai =
                           "${jadwal.jamSelesai.hour.toString().padLeft(2, '0')}:${jadwal.jamSelesai.minute.toString().padLeft(2, '0')}";
+                      
+                      // [BARU] Hitung Status Jadwal
+                      final statusJadwal = jadwal.getStatus(DateTime.now());
 
                       // --- Delete Jadwal (Geser) ---
                       return Dismissible(
@@ -233,23 +285,31 @@ class _MataKuliahDetailScreenState
                             subtitle: Text(
                               "$jamMulai - $jamSelesai | Ruang: ${jadwal.ruangan}",
                             ),
-                            trailing: IconButton(
-                              icon: Icon(
-                                Icons.edit_note,
-                                color: Colors.grey[400],
-                              ),
-                              tooltip: "Edit Jadwal",
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AddEditJadwalScreen(
-                                      mataKuliahId: widget.matkul.id,
-                                      jadwal: jadwal, // Kirim data jadwal
-                                    ),
+                            // [BARU] Status Badge di Trailing, sebelah kiri tombol edit
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _StatusBadge(status: statusJadwal), // Widget Baru
+                                SizedBox(width: 8),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.edit_note,
+                                    color: Colors.grey[400],
                                   ),
-                                );
-                              },
+                                  tooltip: "Edit Jadwal",
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => AddEditJadwalScreen(
+                                          mataKuliahId: widget.matkul.id,
+                                          jadwal: jadwal, // Kirim data jadwal
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -409,6 +469,13 @@ class _MataKuliahDetailScreenState
                                     );
                                   },
                                 ),
+                                // [BARU] Badge Status yang bisa diklik
+                                GestureDetector(
+                                  onTap: () => _updateTaskStatus(tugas),
+                                  child: _StatusBadge(status: tugas.status),
+                                ),
+                                SizedBox(width: 8),
+
                                 IconButton(
                                   icon: Icon(
                                     Icons.edit_note,
@@ -475,6 +542,52 @@ class _MataKuliahDetailScreenState
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+// [WIDGET BARU] Widget Reusable untuk menampilkan Status Badge
+class _StatusBadge extends StatelessWidget {
+  final String status;
+
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+    
+    // Tentukan warna berdasarkan string status
+    switch (status) {
+      case "Mendatang":
+      case "Belum Dikerjakan":
+        color = Colors.grey;
+        break;
+      case "Berlangsung":
+      case "Dalam Pengerjaan":
+        color = Colors.blueAccent;
+        break;
+      case "Selesai":
+        color = Colors.green;
+        break;
+      default:
+        color = Colors.grey;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.1), // Background transparan
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: color,
+          fontSize: 10, // Ukuran teks label kecil
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

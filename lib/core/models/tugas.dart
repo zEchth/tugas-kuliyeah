@@ -31,6 +31,9 @@ class Tugas {
   final String mataKuliahId;
   // --- BAGIAN EKA (Fitur 5) ---
   final String? attachmentPath; 
+  
+  // [BARU] Status Pengerjaan
+  final String status;
 
   Tugas({
     required this.id,
@@ -42,6 +45,7 @@ class Tugas {
     required this.mataKuliahId,
     this.note,
     this.attachmentPath,
+    this.status = 'Belum Dikerjakan', // Default value
   });
 
   factory Tugas.fromMap(Map<String, dynamic> map) {
@@ -54,7 +58,9 @@ class Tugas {
       dueAt: DateTime.parse(map['due_at']),
       createdAt: DateTime.parse(map['created_at']),
       mataKuliahId: map['mata_kuliah_id'],
-      attachmentPath: map['attachment_path'], 
+      attachmentPath: map['attachment_path'],
+      // Ambil status, default ke 'Belum Dikerjakan' jika null (safety)
+      status: map['status'] ?? 'Belum Dikerjakan', 
     );
   }
 
@@ -69,6 +75,34 @@ class Tugas {
       'created_at': createdAt.toIso8601String(),
       'mata_kuliah_id': mataKuliahId,
       'attachment_path': attachmentPath, 
+      'status': status, // Kirim status ke DB
     };
+  }
+  
+  // Helper copyWith untuk update state status dengan mudah
+  Tugas copyWith({
+    String? id,
+    String? ownerId,
+    String? title,
+    String? type,
+    String? note,
+    DateTime? dueAt,
+    DateTime? createdAt,
+    String? mataKuliahId,
+    String? attachmentPath,
+    String? status,
+  }) {
+    return Tugas(
+      id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      note: note ?? this.note,
+      dueAt: dueAt ?? this.dueAt,
+      createdAt: createdAt ?? this.createdAt,
+      mataKuliahId: mataKuliahId ?? this.mataKuliahId,
+      attachmentPath: attachmentPath ?? this.attachmentPath,
+      status: status ?? this.status,
+    );
   }
 }

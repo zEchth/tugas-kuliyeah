@@ -59,4 +59,41 @@ class Jadwal {
       'mata_kuliah_id': mataKuliahId,
     };
   }
+
+  // [BARU] Logika Status Jadwal
+  // Status: "Mendatang", "Berlangsung", "Selesai"
+  String getStatus(DateTime now) {
+    // 1. Cek Hari
+    final List<String> hariList = [
+      "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"
+    ];
+    
+    // Konversi hari string ke weekday int (1=Senin, 7=Minggu)
+    final int jadwalWeekday = hariList.indexOf(hari) + 1;
+    
+    if (jadwalWeekday == 0) return "Jadwal Error"; // Hari tidak valid
+
+    // Jika hari ini bukan harinya jadwal
+    if (now.weekday != jadwalWeekday) {
+      if (now.weekday < jadwalWeekday) {
+        return "Mendatang"; // Hari ini Senin, Jadwal Rabu -> Mendatang
+      } else {
+        return "Selesai"; // Hari ini Rabu, Jadwal Senin -> Selesai (minggu ini)
+      }
+    }
+
+    // 2. Jika Hari INI Sama, Cek Jam
+    // Normalisasi ke menit sejak jam 00:00
+    final int nowMinutes = now.hour * 60 + now.minute;
+    final int startMinutes = jamMulai.hour * 60 + jamMulai.minute;
+    final int endMinutes = jamSelesai.hour * 60 + jamSelesai.minute;
+
+    if (nowMinutes < startMinutes) {
+      return "Mendatang";
+    } else if (nowMinutes >= startMinutes && nowMinutes <= endMinutes) {
+      return "Berlangsung";
+    } else {
+      return "Selesai";
+    }
+  }
 }
