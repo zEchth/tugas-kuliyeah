@@ -9,6 +9,9 @@ class Jadwal {
   final String? ruangan;
   final DateTime createdAt;
   final String mataKuliahId;
+  
+  // [BARU] Nama Mata Kuliah (Hasil Join/Lookup)
+  final String? mataKuliahName;
 
   Jadwal({
     required this.id,
@@ -19,6 +22,7 @@ class Jadwal {
     required this.ruangan,
     required this.createdAt,
     required this.mataKuliahId,
+    this.mataKuliahName,
   });
 
   // Convert DateTime -> TIME string for PostgreSQL
@@ -40,6 +44,10 @@ class Jadwal {
       ruangan: map['ruangan'],
       createdAt: DateTime.parse(map['created_at']),
       mataKuliahId: map['mata_kuliah_id'],
+      
+      mataKuliahName: map['mata_kuliah'] != null 
+          ? map['mata_kuliah']['nama_matkul'] 
+          : null,
     );
   }
 
@@ -95,5 +103,30 @@ class Jadwal {
     } else {
       return "Selesai";
     }
+  }
+  
+  // Helper copyWith
+  Jadwal copyWith({
+    String? id,
+    String? ownerId,
+    String? hari,
+    DateTime? jamMulai,
+    DateTime? jamSelesai,
+    String? ruangan,
+    DateTime? createdAt,
+    String? mataKuliahId,
+    String? mataKuliahName,
+  }) {
+    return Jadwal(
+      id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
+      hari: hari ?? this.hari,
+      jamMulai: jamMulai ?? this.jamMulai,
+      jamSelesai: jamSelesai ?? this.jamSelesai,
+      ruangan: ruangan ?? this.ruangan,
+      createdAt: createdAt ?? this.createdAt,
+      mataKuliahId: mataKuliahId ?? this.mataKuliahId,
+      mataKuliahName: mataKuliahName ?? this.mataKuliahName,
+    );
   }
 }

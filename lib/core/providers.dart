@@ -108,3 +108,66 @@ final tempDeletedMataKuliahProvider =
     NotifierProvider<TempDeletedItemsNotifier, Set<String>>(
       TempDeletedItemsNotifier.new,
     );
+
+// ==============================================================
+//           PROVIDERS KHUSUS HOME SCREEN (DASHBOARD)
+// ==============================================================
+
+// 1. Stream RAW dari Repository
+final allTugasRawProvider = StreamProvider<List<core_model.Tugas>>((ref) {
+  return ref.watch(taskRepositoryProvider).watchAllTugas();
+});
+
+final allJadwalRawProvider = StreamProvider<List<core_model.Jadwal>>((ref) {
+  return ref.watch(taskRepositoryProvider).watchAllJadwal();
+});
+
+// 2. Provider "Pintar" yang menggabungkan (JOIN) data Matkul ke Tugas
+// agar kita bisa menampilkan "Nama Matkul" di Home Screen.
+final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((ref) {
+  final tugasAsync = ref.watch(allTugasRawProvider);
+  final matkulAsync = ref.watch(allMataKuliahProvider);
+
+  if (tugasAsync.isLoading || matkulAsync.isLoading) {
+    return const AsyncLoading();
+  }
+
+  if (tugasAsync.hasError) return AsyncError(tugasAsync.error!, tugasAsync.stackTrace!);
+  if (matkulAsync.hasError) return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
+
+  final listTugas = tugasAsync.value ?? [];
+  final listMatkul = matkulAsync.value ?? [];
+
+  // Client-Side JOIN
+  final joined = listTugas.map((tugas) {
+    // Cari nama matkul berdasarkan ID
+    final mk = listMatkul.where((m) => m.id == tugas.mataKuliahId).firstOrNull;
+    return tugas.copyWith(mataKuliahName: mk?.nama ?? "Matkul Dihapus");
+  }).toList();
+
+  return AsyncData(joined);
+});
+
+// 3. Provider "Pintar" untuk Jadwal Lengkap
+final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((ref) {
+  final jadwalAsync = ref.watch(allJadwalRawProvider);
+  final matkulAsync = ref.watch(allMataKuliahProvider);
+
+  if (jadwalAsync.isLoading || matkulAsync.isLoading) {
+    return const AsyncLoading();
+  }
+  
+  if (jadwalAsync.hasError) return AsyncError(jadwalAsync.error!, jadwalAsync.stackTrace!);
+  if (matkulAsync.hasError) return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
+
+  final listJadwal = jadwalAsync.value ?? [];
+  final listMatkul = matkulAsync.value ?? [];
+
+  // Client-Side JOIN
+  final joined = listJadwal.map((jadwal) {
+    final mk = listMatkul.where((m) => m.id == jadwal.mataKuliahId).firstOrNull;
+    return jadwal.copyWith(mataKuliahName: mk?.nama ?? "Matkul Dihapus");
+  }).toList();
+
+  return AsyncData(joined);
+});

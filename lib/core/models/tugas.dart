@@ -35,6 +35,9 @@ class Tugas {
   // [BARU] Status Pengerjaan
   final String status;
 
+  // [BARU] Nama Mata Kuliah (Hasil Join/Lookup) - Tidak disimpan di tabel tugas
+  final String? mataKuliahName;
+
   Tugas({
     required this.id,
     required this.ownerId,
@@ -46,6 +49,7 @@ class Tugas {
     this.note,
     this.attachmentPath,
     this.status = 'Belum Dikerjakan', // Default value
+    this.mataKuliahName,
   });
 
   factory Tugas.fromMap(Map<String, dynamic> map) {
@@ -61,6 +65,12 @@ class Tugas {
       attachmentPath: map['attachment_path'],
       // Ambil status, default ke 'Belum Dikerjakan' jika null (safety)
       status: map['status'] ?? 'Belum Dikerjakan', 
+      
+      // Jika kita melakukan join query di Supabase (.select('*, mata_kuliah(nama_matkul)'))
+      // Data akan ada di map['mata_kuliah']['nama_matkul']
+      mataKuliahName: map['mata_kuliah'] != null 
+          ? map['mata_kuliah']['nama_matkul'] 
+          : null,
     );
   }
 
@@ -91,6 +101,7 @@ class Tugas {
     String? mataKuliahId,
     String? attachmentPath,
     String? status,
+    String? mataKuliahName,
   }) {
     return Tugas(
       id: id ?? this.id,
@@ -103,6 +114,7 @@ class Tugas {
       mataKuliahId: mataKuliahId ?? this.mataKuliahId,
       attachmentPath: attachmentPath ?? this.attachmentPath,
       status: status ?? this.status,
+      mataKuliahName: mataKuliahName ?? this.mataKuliahName,
     );
   }
 }

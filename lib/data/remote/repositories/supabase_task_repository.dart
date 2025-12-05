@@ -63,6 +63,17 @@ class SupabaseTaskRepository implements TaskRepository {
     });
   }
 
+  // [BARU] Mengambil SEMUA jadwal user (tanpa filter matkul)
+  @override
+  Stream<List<Jadwal>> watchAllJadwal() {
+    final uid = Supabase.instance.client.auth.currentUser!.id;
+    return client
+        .from('jadwal_kuliah')
+        .stream(primaryKey: ['id'])
+        .eq('owner_id', uid)
+        .map((rows) => rows.map(Jadwal.fromMap).toList());
+  }
+
   @override
   Future<void> insertJadwal(Jadwal jadwal) async {
     final uid = Supabase.instance.client.auth.currentUser!.id;
@@ -96,6 +107,17 @@ class SupabaseTaskRepository implements TaskRepository {
         .from('tugas')
         .stream(primaryKey: ['id'])
         .eq('mata_kuliah_id', matkulId)
+        .map((rows) => rows.map(Tugas.fromMap).toList());
+  }
+  
+  // [BARU] Mengambil SEMUA tugas user
+  @override
+  Stream<List<Tugas>> watchAllTugas() {
+    final uid = Supabase.instance.client.auth.currentUser!.id;
+    return client
+        .from('tugas')
+        .stream(primaryKey: ['id'])
+        .eq('owner_id', uid)
         .map((rows) => rows.map(Tugas.fromMap).toList());
   }
 

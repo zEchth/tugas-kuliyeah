@@ -51,12 +51,18 @@ abstract class TaskRepository {
 
   // ======================== JADWAL ========================
   Stream<List<core_model.Jadwal>> watchJadwalByMataKuliah(String matkulId);
+  // [BARU] Untuk Home Screen (All Jadwal)
+  Stream<List<core_model.Jadwal>> watchAllJadwal();
+  
   Future<void> insertJadwal(core_model.Jadwal jadwal);
   Future<void> updateJadwal(core_model.Jadwal jadwal);
   Future<void> deleteJadwal(String id);
 
   // ========================= TUGAS ========================
   Stream<List<core_model.Tugas>> watchTugasByMataKuliah(String matkulId);
+  // [BARU] Untuk Home Screen (All Tugas)
+  Stream<List<core_model.Tugas>> watchAllTugas();
+  
   Future<void> insertTugas(core_model.Tugas tugas);
   Future<void> updateTugas(core_model.Tugas tugas);
   Future<void> deleteTugas(String id);
