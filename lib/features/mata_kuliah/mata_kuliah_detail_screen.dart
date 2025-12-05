@@ -561,7 +561,7 @@ class _StatusBadge extends StatelessWidget {
     switch (status) {
       case "Mendatang":
       case "Belum Dikerjakan":
-        color = Colors.grey;
+        color = Color(0xFFE0C9A6);
         break;
       case "Berlangsung":
       case "Dalam Pengerjaan":
