@@ -38,7 +38,7 @@ final taskRepositoryProvider = Provider<TaskRepository>((ref) {
 
   // MASUKKAN KE REPOSITORY
   // return LocalTaskRepository(db, notifService);
-  return SupabaseTaskRepository(Supabase.instance.client);
+  return SupabaseTaskRepository(Supabase.instance.client, ref);
 });
 
 // ... existing code ... (sisanya sama)
@@ -136,10 +136,12 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
     return const AsyncLoading();
   }
 
-  if (tugasAsync.hasError)
+  if (tugasAsync.hasError) {
     return AsyncError(tugasAsync.error!, tugasAsync.stackTrace!);
-  if (matkulAsync.hasError)
+  }
+  if (matkulAsync.hasError) {
     return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
+  }
 
   final listTugas = tugasAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];
@@ -165,10 +167,12 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
     return const AsyncLoading();
   }
 
-  if (jadwalAsync.hasError)
+  if (jadwalAsync.hasError) {
     return AsyncError(jadwalAsync.error!, jadwalAsync.stackTrace!);
-  if (matkulAsync.hasError)
+  }
+  if (matkulAsync.hasError) {
     return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
+  }
 
   final listJadwal = jadwalAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];

@@ -93,7 +93,6 @@ class _MataKuliahDetailScreenState
 
   // --- BAGIAN EKA: Fungsi Buka File dengan Logika Cross-Platform ---
   void _openAttachment(BuildContext context, String url) async {
-
     debugPrint("[DEBUG] Mencoba membuka file di path: $url");
 
     try {
@@ -242,185 +241,187 @@ class _MataKuliahDetailScreenState
 
   // [UX UPDATE] Bottom Sheet untuk Detail Tugas (Konsisten dengan Home)
   void _showTugasDetail(core_model.Tugas tugas) {
-    final attachmentsAsync = ref.watch(attachmentsByTaskProvider(tugas.id));
-    // final bool hasAttachment =
-    //     tugas.attachmentPath != null && tugas.attachmentPath!.isNotEmpty;
-
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tugas.title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                widget.matkul.nama,
-                style: const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Status Pengerjaan:",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
+        return Consumer(
+          builder: (context, ref2, _) {
+            final attachmentsAsync = ref2.watch(
+              attachmentsByTaskProvider(tugas.id),
+            );
 
-              // Opsi Status Cepat (Chips)
-              Wrap(
-                spacing: 8,
-                children: ["Belum Dikerjakan", "Dalam Pengerjaan", "Selesai"]
-                    .map((status) {
-                      final isSelected = tugas.status == status;
-                      return ChoiceChip(
-                        label: Text(status),
-                        selected: isSelected,
-                        onSelected: (selected) async {
-                          if (selected) {
-                            Navigator.pop(context);
-                            try {
-                              await ref
-                                  .read(taskRepositoryProvider)
-                                  .updateTugas(tugas.copyWith(status: status));
-
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Status diupdate: $status"),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              // Handle error
-                            }
-                          }
-                        },
-                      );
-                    })
-                    .toList(),
-              ),
-
-              if (tugas.note != null && tugas.note!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Text("Catatan:\n${tugas.note}"),
-                ),
-
-              const SizedBox(height: 16),
-
-              // Bagian Lampiran & Deadline
-              Row(
-                children: [
-                  Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)}",
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              attachmentsAsync.when(
-                loading: () => Center(child: CircularProgressIndicator()),
-                error: (_, __) => Text("Gagal memuat lampiran"),
-                data: (list) {
-                  if (list.isEmpty) {
-                    return Text(
-                      "Tidak ada lampiran",
-                      style: TextStyle(color: Colors.grey),
-                    );
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Lampiran:",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      ...list.map((att) {
-                        final fileName = att.path.split('/').last;
-                        return ListTile(
-                          leading: Icon(Icons.attach_file),
-                          title: Text(
-                            fileName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          onTap: () {
-                            if (att.url == null || att.url!.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("URL file tidak tersedia"),
-                                ),
-                              );
-                              return;
-                            }
-                            _openAttachment(context, att.url!);
-                          },
-                        );
-                      }).toList(),
-                    ],
-                  );
-                },
-              ),
-
-              const SizedBox(height: 24),
-
-              // Action Buttons
-              Row(
-                children: [
-                  // Tombol Buka Lampiran (Hanya jika ada)
-                  // if (hasAttachment)
-                  //   Expanded(
-                  //     child: Padding(
-                  //       padding: const EdgeInsets.only(right: 8.0),
-                  //       child: ElevatedButton.icon(
-                  //         style: ElevatedButton.styleFrom(
-                  //           backgroundColor: Colors.blueAccent.withOpacity(0.2),
-                  //           foregroundColor: Colors.blueAccent,
-                  //         ),
-                  //         icon: const Icon(Icons.attach_file),
-                  //         label: const Text("Buka File"),
-                  //         onPressed: () {
-                  //           Navigator.pop(context);
-                  //           _openAttachment(context, tugas.attachmentPath!);
-                  //         },
-                  //       ),
-                  //     ),
-                  //   ),
-
-                  // Tombol Edit (Kecil)
-                  IconButton.filledTonal(
-                    icon: const Icon(Icons.edit),
-                    tooltip: "Edit Tugas",
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AddEditTugasScreen(
-                            mataKuliahId: widget.matkul.id,
-                            tugas: tugas,
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ===== HEADER TITLE + EDIT BUTTON =====
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            tugas.title,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ],
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          tooltip: "Edit Tugas",
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddEditTugasScreen(
+                                  mataKuliahId: widget.matkul.id,
+                                  tugas: tugas,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+
+                    Text(
+                      widget.matkul.nama,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    const Text(
+                      "Status Pengerjaan:",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+
+                    Wrap(
+                      spacing: 8,
+                      children:
+                          [
+                            "Belum Dikerjakan",
+                            "Dalam Pengerjaan",
+                            "Selesai",
+                          ].map((status) {
+                            final isSelected = tugas.status == status;
+                            return ChoiceChip(
+                              label: Text(status),
+                              selected: isSelected,
+                              onSelected: (selected) async {
+                                if (selected) {
+                                  Navigator.pop(context);
+                                  try {
+                                    await ref
+                                        .read(taskRepositoryProvider)
+                                        .updateTugas(
+                                          tugas.copyWith(status: status),
+                                        );
+
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            "Status diupdate: $status",
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } catch (_) {}
+                                }
+                              },
+                            );
+                          }).toList(),
+                    ),
+
+                    if (tugas.note != null && tugas.note!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16.0),
+                        child: Text("Catatan:\n${tugas.note}"),
+                      ),
+
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)}",
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ===== ATTACHMENTS =====
+                    attachmentsAsync.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (_, __) => const Text("Gagal memuat lampiran"),
+                      data: (list) {
+                        if (list.isEmpty) {
+                          return const Text(
+                            "Tidak ada lampiran",
+                            style: TextStyle(color: Colors.grey),
+                          );
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Lampiran:",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            ...list.map((att) {
+                              final fileName = att.path.split('/').last;
+                              return ListTile(
+                                leading: const Icon(Icons.attach_file),
+                                title: Text(
+                                  fileName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  if (att.url == null || att.url!.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "URL file tidak tersedia",
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  _openAttachment(context, att.url!);
+                                },
+                              );
+                            }).toList(),
+                          ],
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -494,9 +495,11 @@ class _MataKuliahDetailScreenState
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.1),
+                color: Colors.blueAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+                border: Border.all(
+                  color: Colors.blueAccent.withValues(alpha: 0.3),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,6 +623,7 @@ class _MataKuliahDetailScreenState
                                 .remove(jadwal.id);
 
                             if (mounted) {
+                              // ignore: use_build_context_synchronously
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text("Gagal hapus: $e")),
                               );
@@ -644,7 +648,7 @@ class _MataKuliahDetailScreenState
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
+                                    color: Colors.white.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Column(
@@ -780,8 +784,9 @@ class _MataKuliahDetailScreenState
                           !timeLeft.isNegative &&
                           tugas.status != 'Selesai';
                       Color cardColor = const Color(0xFF1E1E1E); // Default Dark
-                      if (isUrgent)
-                        cardColor = Colors.redAccent.withOpacity(0.1);
+                      if (isUrgent) {
+                        cardColor = Colors.redAccent.withValues(alpha: 0.1);
+                      }
 
                       // --- Delete Tugas (Geser) ---
                       return Dismissible(
@@ -834,8 +839,8 @@ class _MataKuliahDetailScreenState
                             onTap: () =>
                                 _showTugasDetail(tugas), // Buka Bottom Sheet
                             leading: CircleAvatar(
-                              backgroundColor: Colors.blueAccent.withOpacity(
-                                0.1,
+                              backgroundColor: Colors.blueAccent.withValues(
+                                alpha: 0.1,
                               ),
                               child: Icon(
                                 _getTaskIcon(tugas.type),
@@ -883,8 +888,15 @@ class _MataKuliahDetailScreenState
                                             : FontWeight.normal,
                                       ),
                                     ),
-                                    const Spacer(),
-                                    _StatusBadgeMini(status: tugas.status),
+                                    SizedBox(width: 8),
+                                    Flexible(
+                                      child: Align(
+                                        alignment: Alignment.centerRight,
+                                        child: _StatusBadgeMini(
+                                          status: tugas.status,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -975,7 +987,7 @@ class _StatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(color: color),
         borderRadius: BorderRadius.circular(12),
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
       ),
       child: Text(
         status,

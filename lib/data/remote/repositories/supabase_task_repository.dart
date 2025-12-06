@@ -1,19 +1,20 @@
-import 'dart:typed_data';
-
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tugas_kuliyeah/core/models/share_tugas.dart';
 import 'package:tugas_kuliyeah/core/models/task_attachment.dart';
 import 'package:tugas_kuliyeah/core/models/tugas.dart';
 import 'package:tugas_kuliyeah/core/models/jadwal.dart';
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart';
+import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
 import 'dart:io';
 
 class SupabaseTaskRepository implements TaskRepository {
   final SupabaseClient client;
+  final Ref ref;
 
-  SupabaseTaskRepository(this.client);
+  SupabaseTaskRepository(this.client, this.ref);
 
   // ============================================================
   //                        MATA KULIAH
@@ -279,6 +280,7 @@ class SupabaseTaskRepository implements TaskRepository {
       'size': bytes.length,
       'mime': mime,
     });
+
   }
 
   // ===================== GET ATTACHMENTS =====================
@@ -370,6 +372,6 @@ class SupabaseTaskRepository implements TaskRepository {
       'size': bytes.length,
       'mime': mime,
     });
+    
   }
-
 }
