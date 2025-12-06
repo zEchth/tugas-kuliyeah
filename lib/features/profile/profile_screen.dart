@@ -11,6 +11,12 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Mengambil data user dari Supabase Auth
+    final inbox = ref.watch(inboxSharedTasksProvider);
+    final hasPending = inbox.maybeWhen(
+      data: (list) => list.any((s) => s.status == "pending"),
+      orElse: () => false,
+    );
+
     final user = Supabase.instance.client.auth.currentUser;
     final userName = user?.userMetadata?['full_name'] ?? "Pengguna";
     final userEmail = user?.email ?? "-";
@@ -36,7 +42,11 @@ class ProfileScreen extends ConsumerWidget {
                       ? CachedNetworkImageProvider(userPhoto)
                       : null,
                   child: userPhoto == null
-                      ? const Icon(Icons.person, size: 50, color: Colors.white70)
+                      ? const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Colors.white70,
+                        )
                       : null,
                 ),
                 const SizedBox(height: 16),
@@ -49,22 +59,39 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 Text(
                   userEmail,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),
           ),
-          
+
           const SizedBox(height: 30),
           const Divider(),
           const SizedBox(height: 10),
 
           // === MENU INBOX ===
           ListTile(
-            leading: const Icon(Icons.inbox, color: Colors.blueAccent),
+            leading: Stack(
+              children: [
+                const Icon(Icons.inbox, color: Colors.blueAccent, size: 30),
+
+                // 🔴 NOTIF DOT
+                if (hasPending)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            // leading: const Icon(Icons.inbox, color: Colors.blueAccent),
             title: const Text("Inbox Tugas"),
             subtitle: const Text("Cek tugas yang dibagikan teman"),
             trailing: const Icon(Icons.chevron_right),
@@ -77,7 +104,7 @@ class ProfileScreen extends ConsumerWidget {
               );
             },
           ),
-          
+
           const Divider(),
           const SizedBox(height: 20),
 
@@ -110,10 +137,7 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     content: const Text(
                       "Apakah kamu yakin ingin keluar?",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 15,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 15),
                     ),
                     actions: [
                       TextButton(
@@ -141,7 +165,7 @@ class ProfileScreen extends ConsumerWidget {
                             ref.invalidate(jadwalByMatkulProvider);
                             ref.invalidate(tugasByMatkulProvider);
                             ref.invalidate(taskRepositoryProvider);
-                            
+
                             await Supabase.instance.client.auth.signOut();
                             // AuthGate di main.dart akan menangani navigasi ke LoginScreen
                           } catch (e) {

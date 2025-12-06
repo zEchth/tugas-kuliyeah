@@ -6,7 +6,6 @@ import 'package:tugas_kuliyeah/core/models/task_attachment.dart';
 import 'package:tugas_kuliyeah/core/models/tugas.dart';
 import 'package:tugas_kuliyeah/core/models/jadwal.dart';
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart';
-import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
 import 'dart:io';
 
@@ -175,6 +174,8 @@ class SupabaseTaskRepository implements TaskRepository {
 
   @override
   Stream<List<ShareTugas>> watchSharedTasksReceived(String myUserId) async* {
+    yield [];
+    
     final stream = client
         .from('share_tugas')
         .stream(primaryKey: ['id'])

@@ -17,6 +17,12 @@ import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
 
+final authStateProvider = StreamProvider<User?>((ref) {
+  return Supabase.instance.client.auth.onAuthStateChange.map(
+    (data) => data.session?.user,
+  );
+});
+
 final userProvider = Provider<User?>((ref) {
   return Supabase.instance.client.auth.currentUser;
 });
@@ -67,8 +73,21 @@ final allUsersProvider = FutureProvider((ref) async {
 });
 
 final inboxSharedTasksProvider = StreamProvider<List<ShareTugas>>((ref) {
-  final uid = Supabase.instance.client.auth.currentUser!.id;
-  return ref.watch(taskRepositoryProvider).watchSharedTasksReceived(uid);
+  final auth = ref.watch(authStateProvider);
+
+  return auth.when(
+    data: (user) {
+      if (user == null) {
+        return Stream.value([]); // user belum login
+      }
+
+      return ref
+          .watch(taskRepositoryProvider)
+          .watchSharedTasksReceived(user.id);
+    },
+    loading: () => const Stream.empty(),
+    error: (_, __) => const Stream.empty(),
+  );
 });
 
 // [SOLUSI v3.0] Menggunakan Notifier API (pengganti StateProvider Legacy)
@@ -192,4 +211,3 @@ final attachmentsByTaskProvider =
       final repo = ref.watch(taskRepositoryProvider);
       return repo.getAttachmentsByTask(taskId);
     });
-
