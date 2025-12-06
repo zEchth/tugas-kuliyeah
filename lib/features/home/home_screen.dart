@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
-import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_detail_screen.dart';
+import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_detail_screen.dart'; // Untuk Navigasi
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -32,61 +31,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     initializeDateFormatting('id_ID', null);
-    _selectedDay = _focusedDay;
+    // Set default ke hari ini
+    final now = DateTime.now();
+    _selectedDay = _getDayName(now.weekday);
   }
 
-  // Helper konversi hari DateTime ke string database
-  String _getDayNameFromDate(DateTime date) {
-    switch (date.weekday) {
-      case 1: return "Senin";
-      case 2: return "Selasa";
-      case 3: return "Rabu";
-      case 4: return "Kamis";
-      case 5: return "Jumat";
-      case 6: return "Sabtu";
-      case 7: return "Minggu";
-      default: return "Senin";
-    }
+  String _getDayName(int weekday) {
+    // DateTime weekday: 1=Mon, 7=Sun
+    return _days[weekday - 1];
   }
 
-  // Mengambil event (Jadwal & Tugas) untuk tanggal tertentu
-  List<dynamic> _getEventsForDay(
-    DateTime day,
-    List<core_model.Jadwal> allJadwal,
-    List<core_model.Tugas> allTugas,
-  ) {
-    List<dynamic> events = [];
-
-    // Cek Jadwal Kuliah (Recurring)
-    final dayName = _getDayNameFromDate(day);
-    final jadwalHariIni = allJadwal.where((j) => j.hari == dayName).toList();
-    events.addAll(jadwalHariIni);
-
-    // Cek Tugas (One-time)
-    final tugasHariIni = allTugas.where((t) {
-      return isSameDay(t.dueAt, day);
-    }).toList();
-    events.addAll(tugasHariIni);
-
-    return events;
+  // Helper untuk format tanggal header
+  String _getHeaderDate() {
+    final now = DateTime.now();
+    return DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
   }
 
-  // BottomSheet Detail Jadwal
   void _showJadwalDetail(core_model.Jadwal jadwal) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           width: double.infinity,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                jadwal.mataKuliahName ?? "Jadwal Kuliah",
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                jadwal.mataKuliahName ?? "Jadwal",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
               _buildDetailRow(Icons.calendar_today, jadwal.hari),
@@ -118,24 +93,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // BottomSheet Detail Tugas
   void _showTugasDetail(core_model.Tugas tugas) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 tugas.title,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               Text(
                 tugas.mataKuliahName ?? "Tugas",
-                style: const TextStyle(color: Colors.grey),
+                style: TextStyle(color: Colors.grey),
               ),
               SizedBox(height: 16),
               Text("Status Pengerjaan:"),
@@ -185,15 +159,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
     );
   }
-
+  
   Widget _buildDetailRow(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey),
-          const SizedBox(width: 12),
-          Text(text, style: const TextStyle(fontSize: 16)),
+          Icon(icon, size: 16, color: Colors.grey),
+          SizedBox(width: 8),
+          Text(text),
         ],
       ),
     );
@@ -503,7 +477,7 @@ class _StatusBadgeMini extends StatelessWidget {
     if (status == "Dalam Pengerjaan") color = Colors.blueAccent;
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         border: Border.all(color: color, width: 0.5),
         borderRadius: BorderRadius.circular(4),
