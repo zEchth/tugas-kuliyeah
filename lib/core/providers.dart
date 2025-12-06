@@ -215,7 +215,7 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
 final attachmentsByTaskProvider =
     StreamProvider.family<List<TaskAttachment>, String>((ref, taskId) {
       ref.watch(globalRefreshProvider); 
-      final repo = ref.watch(taskRepositoryProvider);
+      // final repo = ref.watch(taskRepositoryProvider);
 
       return Supabase.instance.client
           .from('task_attachments')
@@ -223,3 +223,6 @@ final attachmentsByTaskProvider =
           .eq('task_id', taskId)
           .map((rows) => rows.map(TaskAttachment.fromMap).toList());
     });
+
+
+
