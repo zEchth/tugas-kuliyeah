@@ -249,7 +249,7 @@ class SupabaseTaskRepository implements TaskRepository {
 
     // nama unik
     final uniqueName = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
-    final storagePath = 'attachments/$taskId/$uniqueName';
+    final storagePath = 'attachment_folder/$taskId/$uniqueName';
 
     // upload binary + metadata
     final userId = client.auth.currentUser!.id;
@@ -346,12 +346,21 @@ class SupabaseTaskRepository implements TaskRepository {
     final mime = _extensionToMime(ext);
 
     final uniqueName = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
-    final storagePath = 'attachments/$taskId/$uniqueName';
+    final storagePath = 'attachment_folder/$taskId/$uniqueName';
 
-    await client.storage.from('attachments').uploadBinary(storagePath, bytes);
+    final userId = client.auth.currentUser!.id;
+    await client.storage
+        .from('attachments')
+        .uploadBinary(
+          storagePath,
+          bytes,
+          fileOptions: FileOptions(
+            upsert: false,
+            metadata: {"owner_id": userId},
+          ),
+        );
 
     final url = client.storage.from('attachments').getPublicUrl(storagePath);
-    final userId = client.auth.currentUser!.id;
 
     await client.from('task_attachments').insert({
       'task_id': taskId,
@@ -362,4 +371,5 @@ class SupabaseTaskRepository implements TaskRepository {
       'mime': mime,
     });
   }
+
 }

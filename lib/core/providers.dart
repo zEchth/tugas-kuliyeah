@@ -31,9 +31,10 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 });
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
-  final db = ref.watch(databaseProvider);
+  // final db = ref.watch(databaseProvider);
+
   // AMBIL SERVICE DARI PROVIDER
-  final notifService = ref.read(notificationServiceProvider);
+  // final notifService = ref.read(notificationServiceProvider);
 
   // MASUKKAN KE REPOSITORY
   // return LocalTaskRepository(db, notifService);
@@ -187,3 +188,4 @@ final attachmentsByTaskProvider =
       final repo = ref.watch(taskRepositoryProvider);
       return repo.getAttachmentsByTask(taskId);
     });
+

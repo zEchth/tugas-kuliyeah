@@ -1,10 +1,14 @@
 // lib/features/mata_kuliah/mata_kuliah_detail_screen.dart
+import 'dart:io';
+import 'package:http/http.dart' as http;
+
 import 'package:flutter/foundation.dart'
     show kIsWeb; // [AUDITOR] Penting untuk deteksi platform
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart'; // [AUDITOR] Tambahan wajib untuk Web
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
 import 'package:tugas_kuliyeah/core/providers.dart';
@@ -32,6 +36,24 @@ class _MataKuliahDetailScreenState
   // Kita tidak lagi menggunakan Set lokal agar state tetap tersimpan saat pindah halaman.
   // final Set<String> _tempDeletedJadwalIds = {};
   // final Set<String> _tempDeletedTugasIds = {};
+
+  Future<String> downloadToTemp(String url) async {
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode != 200) {
+      throw Exception("Download gagal");
+    }
+
+    final bytes = response.bodyBytes;
+
+    final tempDir = await getTemporaryDirectory();
+    final fileName = url.split('/').last;
+
+    final file = File('${tempDir.path}/$fileName');
+    await file.writeAsBytes(bytes);
+
+    return file.path;
+  }
 
   // Tambah
   Future<String?> _pickReceiver(BuildContext context, WidgetRef ref) async {
@@ -70,51 +92,75 @@ class _MataKuliahDetailScreenState
   }
 
   // --- BAGIAN EKA: Fungsi Buka File dengan Logika Cross-Platform ---
-  void _openAttachment(BuildContext context, String path) async {
-    debugPrint("[DEBUG] Mencoba membuka file di path: $path");
+  void _openAttachment(BuildContext context, String url) async {
+
+    debugPrint("[DEBUG] Mencoba membuka file di path: $url");
 
     try {
       if (kIsWeb) {
-        // [KONSTRUKTOR] Logika Khusus Web
-        // Di Web, path dari file_picker biasanya berupa Blob URL (blob:http://...)
-        // Kita harus menggunakan url_launcher untuk membukanya di tab browser.
-        final Uri uri = Uri.parse(path);
+        await launchUrl(Uri.parse(url));
+        return;
+      }
 
-        // Kita coba launch langsung. Browser modern mungkin memblokir ini jika
-        // tidak dipicu langsung oleh user gesture, tapi onTap adalah user gesture.
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri);
-        } else {
-          // Fallback: Terkadang canLaunchUrl return false untuk blob,
-          // tapi launchUrl tetap berhasil. Kita coba paksa.
-          debugPrint("[DEBUG] canLaunchUrl false, mencoba paksa launchUrl...");
-          await launchUrl(uri);
-        }
-      } else {
-        // [KONSTRUKTOR] Logika Mobile (Android/iOS)
-        // OpenFilex bekerja sangat baik di mobile dengan path fisik storage.
-        final result = await OpenFilex.open(path);
-        debugPrint(
-          "[DEBUG] Hasil OpenFilex: ${result.type} - ${result.message}",
-        );
+      // ANDROID / IOS => download dulu
+      final temp = await downloadToTemp(url);
 
-        if (result.type != ResultType.done) {
-          throw Exception(result.message);
-        }
+      final result = await OpenFilex.open(temp);
+
+      if (result.type != ResultType.done) {
+        throw Exception(result.message);
       }
     } catch (e) {
-      // Error Handling Terpusat
       debugPrint("[ERROR] Gagal membuka file: $e");
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Gagal buka file: $e"),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Gagal buka file: $e")));
       }
     }
+
+    // try {
+    //   if (kIsWeb) {
+    //     // [KONSTRUKTOR] Logika Khusus Web
+    //     // Di Web, path dari file_picker biasanya berupa Blob URL (blob:http://...)
+    //     // Kita harus menggunakan url_launcher untuk membukanya di tab browser.
+    //     final Uri uri = Uri.parse(path);
+
+    //     // Kita coba launch langsung. Browser modern mungkin memblokir ini jika
+    //     // tidak dipicu langsung oleh user gesture, tapi onTap adalah user gesture.
+    //     if (await canLaunchUrl(uri)) {
+    //       await launchUrl(uri);
+    //     } else {
+    //       // Fallback: Terkadang canLaunchUrl return false untuk blob,
+    //       // tapi launchUrl tetap berhasil. Kita coba paksa.
+    //       debugPrint("[DEBUG] canLaunchUrl false, mencoba paksa launchUrl...");
+    //       await launchUrl(uri);
+    //     }
+    //   } else {
+    //     // [KONSTRUKTOR] Logika Mobile (Android/iOS)
+    //     // OpenFilex bekerja sangat baik di mobile dengan path fisik storage.
+    //     final result = await OpenFilex.open(path);
+    //     debugPrint(
+    //       "[DEBUG] Hasil OpenFilex: ${result.type} - ${result.message}",
+    //     );
+
+    //     if (result.type != ResultType.done) {
+    //       throw Exception(result.message);
+    //     }
+    //   }
+    // } catch (e) {
+    //   // Error Handling Terpusat
+    //   debugPrint("[ERROR] Gagal membuka file: $e");
+    //   if (context.mounted) {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(
+    //         content: Text("Gagal buka file: $e"),
+    //         backgroundColor: Colors.red,
+    //         duration: Duration(seconds: 3),
+    //       ),
+    //     );
+    //   }
+    // }
   }
 
   // [UX UPDATE] Bottom Sheet untuk Detail Jadwal (Konsisten dengan Home)
@@ -310,6 +356,7 @@ class _MataKuliahDetailScreenState
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
+
                           onTap: () {
                             if (att.url == null || att.url!.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(

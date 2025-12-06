@@ -92,19 +92,20 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
     );
 
-    if (result != null) {
+    if (result == null) return;
+
+    if (kIsWeb) {
+      // Web pakai bytes
       setState(() {
-        if (kIsWeb) {
-          // SIMPAN BYTES + NAMA FILE
-          _attachmentPathList = result.files.map((f) => f.name).toList();
-          _webFiles = result.files; // SIMPAN FILES UNTUK DIUPLOAD
-        } else {
-          // ANDROID / IOS pakai path biasa
-          _attachmentPathList = result.paths.whereType<String>().toList();
-        }
-        // _attachmentPathList = result.paths.whereType<String>().toList();
+        _webFiles = result.files; // semua file masuk
+      });
+    } else {
+      // Android/iOS pakai path biasa
+      setState(() {
+        _attachmentPathList = result.paths.whereType<String>().toList();
       });
     }
+    // _attachmentPathList = result.paths.whereType<String>().toList();
   }
 
   Future<void> _submitForm() async {
@@ -272,7 +273,7 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
                 child: ListTile(
                   leading: Icon(Icons.attach_file),
                   title: Text(
-                    "Tambahkan lampiran",
+                    "Tambahkan lampiran tugas",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -284,22 +285,57 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
               ),
 
               // zech
-              Column(
-                children: _attachmentPathList.map((path) {
-                  return ListTile(
-                    leading: Icon(Icons.upload_file),
-                    title: Text(path.split('/').last),
-                    trailing: IconButton(
-                      icon: Icon(Icons.close, color: Colors.red),
-                      onPressed: () {
-                        setState(() {
-                          _attachmentPathList.remove(path);
-                        });
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
+              if (kIsWeb)
+                Column(
+                  children: _webFiles.map((file) {
+                    return ListTile(
+                      leading: Icon(Icons.upload_file),
+                      title: Text(file.name),
+                      trailing: IconButton(
+                        icon: Icon(Icons.close, color: Colors.red),
+                        onPressed: () {
+                          setState(() {
+                            _webFiles.remove(file);
+                          });
+                        },
+                      ),
+                    );
+                  }).toList(),
+                )
+              else
+                Column(
+                  children: _attachmentPathList.map((path) {
+                    return ListTile(
+                      leading: Icon(Icons.upload_file),
+                      title: Text(path.split('/').last),
+                      trailing: IconButton(
+                        icon: Icon(Icons.close, color: Colors.red),
+                        onPressed: () {
+                          setState(() {
+                            _attachmentPathList.remove(path);
+                          });
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+
+              // Column(
+              //   children: _attachmentPathList.map((path) {
+              //     return ListTile(
+              //       leading: Icon(Icons.upload_file),
+              //       title: Text(path.split('/').last),
+              //       trailing: IconButton(
+              //         icon: Icon(Icons.close, color: Colors.red),
+              //         onPressed: () {
+              //           setState(() {
+              //             _attachmentPathList.remove(path);
+              //           });
+              //         },
+              //       ),
+              //     );
+              //   }).toList(),
+              // ),
 
               SizedBox(height: 30),
 
