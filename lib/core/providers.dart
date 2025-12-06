@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tugas_kuliyeah/core/models/task_attachment.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
 import 'package:tugas_kuliyeah/data/local/app_database.dart';
 import 'package:tugas_kuliyeah/core/models/share_tugas.dart';
@@ -124,7 +125,9 @@ final allJadwalRawProvider = StreamProvider<List<core_model.Jadwal>>((ref) {
 
 // 2. Provider "Pintar" yang menggabungkan (JOIN) data Matkul ke Tugas
 // agar kita bisa menampilkan "Nama Matkul" di Home Screen.
-final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((ref) {
+final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
+  ref,
+) {
   final tugasAsync = ref.watch(allTugasRawProvider);
   final matkulAsync = ref.watch(allMataKuliahProvider);
 
@@ -132,8 +135,10 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((re
     return const AsyncLoading();
   }
 
-  if (tugasAsync.hasError) return AsyncError(tugasAsync.error!, tugasAsync.stackTrace!);
-  if (matkulAsync.hasError) return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
+  if (tugasAsync.hasError)
+    return AsyncError(tugasAsync.error!, tugasAsync.stackTrace!);
+  if (matkulAsync.hasError)
+    return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
 
   final listTugas = tugasAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];
@@ -149,16 +154,20 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((re
 });
 
 // 3. Provider "Pintar" untuk Jadwal Lengkap
-final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((ref) {
+final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
+  ref,
+) {
   final jadwalAsync = ref.watch(allJadwalRawProvider);
   final matkulAsync = ref.watch(allMataKuliahProvider);
 
   if (jadwalAsync.isLoading || matkulAsync.isLoading) {
     return const AsyncLoading();
   }
-  
-  if (jadwalAsync.hasError) return AsyncError(jadwalAsync.error!, jadwalAsync.stackTrace!);
-  if (matkulAsync.hasError) return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
+
+  if (jadwalAsync.hasError)
+    return AsyncError(jadwalAsync.error!, jadwalAsync.stackTrace!);
+  if (matkulAsync.hasError)
+    return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
 
   final listJadwal = jadwalAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];
@@ -171,3 +180,10 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
 
   return AsyncData(joined);
 });
+
+// Atachment
+final attachmentsByTaskProvider =
+    FutureProvider.family<List<TaskAttachment>, String>((ref, taskId) async {
+      final repo = ref.watch(taskRepositoryProvider);
+      return repo.getAttachmentsByTask(taskId);
+    });

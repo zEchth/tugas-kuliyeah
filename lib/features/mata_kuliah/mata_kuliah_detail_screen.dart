@@ -8,8 +8,10 @@ import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart'; // [AUDITOR] Tambahan wajib untuk Web
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
 import 'package:tugas_kuliyeah/core/providers.dart';
-import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model; // Import model tugas
-import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model; // Import model jadwal
+import 'package:tugas_kuliyeah/core/models/tugas.dart'
+    as core_model; // Import model tugas
+import 'package:tugas_kuliyeah/core/models/jadwal.dart'
+    as core_model; // Import model jadwal
 import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_jadwal_screen.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_mata_kuliah_screen.dart';
 import 'package:tugas_kuliyeah/features/tugas/add_edit_tugas_screen.dart';
@@ -140,16 +142,21 @@ class _MataKuliahDetailScreenState
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Info
               _buildDetailRow(Icons.calendar_today, jadwal.hari),
-              _buildDetailRow(Icons.access_time,
-                  "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)}"),
-              _buildDetailRow(Icons.location_on, jadwal.ruangan ?? "Tidak ada ruangan"),
+              _buildDetailRow(
+                Icons.access_time,
+                "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)}",
+              ),
+              _buildDetailRow(
+                Icons.location_on,
+                jadwal.ruangan ?? "Tidak ada ruangan",
+              ),
               _buildDetailRow(Icons.school, widget.matkul.dosen),
 
               const SizedBox(height: 24),
-              
+
               // Actions
               Row(
                 children: [
@@ -179,7 +186,7 @@ class _MataKuliahDetailScreenState
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         );
@@ -189,8 +196,9 @@ class _MataKuliahDetailScreenState
 
   // [UX UPDATE] Bottom Sheet untuk Detail Tugas (Konsisten dengan Home)
   void _showTugasDetail(core_model.Tugas tugas) {
-    final bool hasAttachment =
-        tugas.attachmentPath != null && tugas.attachmentPath!.isNotEmpty;
+    final attachmentsAsync = ref.watch(attachmentsByTaskProvider(tugas.id));
+    // final bool hasAttachment =
+    //     tugas.attachmentPath != null && tugas.attachmentPath!.isNotEmpty;
 
     showModalBottomSheet(
       context: context,
@@ -203,88 +211,148 @@ class _MataKuliahDetailScreenState
             children: [
               Text(
                 tugas.title,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 widget.matkul.nama,
                 style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 16),
-              const Text("Status Pengerjaan:", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                "Status Pengerjaan:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
-              
+
               // Opsi Status Cepat (Chips)
               Wrap(
                 spacing: 8,
                 children: ["Belum Dikerjakan", "Dalam Pengerjaan", "Selesai"]
                     .map((status) {
-                  final isSelected = tugas.status == status;
-                  return ChoiceChip(
-                    label: Text(status),
-                    selected: isSelected,
-                    onSelected: (selected) async {
-                      if (selected) {
-                        Navigator.pop(context);
-                        try {
-                          await ref
-                              .read(taskRepositoryProvider)
-                              .updateTugas(tugas.copyWith(status: status));
-                          
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Status diupdate: $status")));
+                      final isSelected = tugas.status == status;
+                      return ChoiceChip(
+                        label: Text(status),
+                        selected: isSelected,
+                        onSelected: (selected) async {
+                          if (selected) {
+                            Navigator.pop(context);
+                            try {
+                              await ref
+                                  .read(taskRepositoryProvider)
+                                  .updateTugas(tugas.copyWith(status: status));
+
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("Status diupdate: $status"),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              // Handle error
+                            }
                           }
-                        } catch (e) {
-                           // Handle error
-                        }
-                      }
-                    },
-                  );
-                }).toList(),
+                        },
+                      );
+                    })
+                    .toList(),
               ),
-              
-              if(tugas.note != null && tugas.note!.isNotEmpty)
-                 Padding(
-                   padding: const EdgeInsets.only(top: 16.0),
-                   child: Text("Catatan:\n${tugas.note}"),
-                 ),
+
+              if (tugas.note != null && tugas.note!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Text("Catatan:\n${tugas.note}"),
+                ),
 
               const SizedBox(height: 16),
-              
+
               // Bagian Lampiran & Deadline
               Row(
                 children: [
                   Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                   const SizedBox(width: 8),
-                  Text("Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)}"),
+                  Text(
+                    "Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)}",
+                  ),
                 ],
               ),
-              
+
+              const SizedBox(height: 24),
+
+              attachmentsAsync.when(
+                loading: () => Center(child: CircularProgressIndicator()),
+                error: (_, __) => Text("Gagal memuat lampiran"),
+                data: (list) {
+                  if (list.isEmpty) {
+                    return Text(
+                      "Tidak ada lampiran",
+                      style: TextStyle(color: Colors.grey),
+                    );
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Lampiran:",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 8),
+                      ...list.map((att) {
+                        final fileName = att.path.split('/').last;
+                        return ListTile(
+                          leading: Icon(Icons.attach_file),
+                          title: Text(
+                            fileName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () {
+                            if (att.url == null || att.url!.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("URL file tidak tersedia"),
+                                ),
+                              );
+                              return;
+                            }
+                            _openAttachment(context, att.url!);
+                          },
+                        );
+                      }).toList(),
+                    ],
+                  );
+                },
+              ),
+
               const SizedBox(height: 24),
 
               // Action Buttons
               Row(
                 children: [
                   // Tombol Buka Lampiran (Hanya jika ada)
-                  if (hasAttachment)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blueAccent.withOpacity(0.2),
-                            foregroundColor: Colors.blueAccent,
-                          ),
-                          icon: const Icon(Icons.attach_file),
-                          label: const Text("Buka File"),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _openAttachment(context, tugas.attachmentPath!);
-                          },
-                        ),
-                      ),
-                    ),
-                  
+                  // if (hasAttachment)
+                  //   Expanded(
+                  //     child: Padding(
+                  //       padding: const EdgeInsets.only(right: 8.0),
+                  //       child: ElevatedButton.icon(
+                  //         style: ElevatedButton.styleFrom(
+                  //           backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                  //           foregroundColor: Colors.blueAccent,
+                  //         ),
+                  //         icon: const Icon(Icons.attach_file),
+                  //         label: const Text("Buka File"),
+                  //         onPressed: () {
+                  //           Navigator.pop(context);
+                  //           _openAttachment(context, tugas.attachmentPath!);
+                  //         },
+                  //       ),
+                  //     ),
+                  //   ),
+
                   // Tombol Edit (Kecil)
                   IconButton.filledTonal(
                     icon: const Icon(Icons.edit),
@@ -303,7 +371,7 @@ class _MataKuliahDetailScreenState
                     },
                   ),
                 ],
-              )
+              ),
             ],
           ),
         );
@@ -327,10 +395,14 @@ class _MataKuliahDetailScreenState
   // --- Helper Icon Tugas (Sama dengan Home) ---
   IconData _getTaskIcon(String type) {
     switch (type.toLowerCase()) {
-      case 'kuis': return Icons.quiz;
-      case 'uts': return Icons.history_edu;
-      case 'uas': return Icons.school;
-      default: return Icons.assignment;
+      case 'kuis':
+        return Icons.quiz;
+      case 'uts':
+        return Icons.history_edu;
+      case 'uas':
+        return Icons.school;
+      default:
+        return Icons.assignment;
     }
   }
 
@@ -384,15 +456,26 @@ class _MataKuliahDetailScreenState
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.person, size: 18, color: Colors.blueAccent),
+                      const Icon(
+                        Icons.person,
+                        size: 18,
+                        color: Colors.blueAccent,
+                      ),
                       const SizedBox(width: 8),
-                      Text("Dosen: ${widget.matkul.dosen}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        "Dosen: ${widget.matkul.dosen}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.book, size: 18, color: Colors.blueAccent),
+                      const Icon(
+                        Icons.book,
+                        size: 18,
+                        color: Colors.blueAccent,
+                      ),
                       const SizedBox(width: 8),
                       Text("SKS: ${widget.matkul.sks}"),
                     ],
@@ -400,7 +483,7 @@ class _MataKuliahDetailScreenState
                 ],
               ),
             ),
-            
+
             const Divider(height: 30),
 
             // --- Judul Daftar Jadwal ---
@@ -412,18 +495,18 @@ class _MataKuliahDetailScreenState
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
-                   icon: const Icon(Icons.add_circle, color: Colors.blueAccent),
-                   tooltip: "Tambah Jadwal",
-                   onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              AddEditJadwalScreen(mataKuliahId: widget.matkul.id),
-                        ),
-                      );
-                   },
-                )
+                  icon: const Icon(Icons.add_circle, color: Colors.blueAccent),
+                  tooltip: "Tambah Jadwal",
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AddEditJadwalScreen(mataKuliahId: widget.matkul.id),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
 
@@ -452,9 +535,13 @@ class _MataKuliahDetailScreenState
                     itemCount: filteredJadwal.length,
                     itemBuilder: (context, index) {
                       final jadwal = filteredJadwal[index];
-                      final jamMulai = DateFormat('HH:mm').format(jadwal.jamMulai);
-                      final jamSelesai = DateFormat('HH:mm').format(jadwal.jamSelesai);
-                      
+                      final jamMulai = DateFormat(
+                        'HH:mm',
+                      ).format(jadwal.jamMulai);
+                      final jamSelesai = DateFormat(
+                        'HH:mm',
+                      ).format(jadwal.jamSelesai);
+
                       // Status Realtime
                       final status = jadwal.getStatus(DateTime.now());
 
@@ -515,9 +602,21 @@ class _MataKuliahDetailScreenState
                                   ),
                                   child: Column(
                                     children: [
-                                      Text(jadwal.hari.substring(0, 3).toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                                      Text(
+                                        jadwal.hari
+                                            .substring(0, 3)
+                                            .toUpperCase(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blueAccent,
+                                        ),
+                                      ),
                                       const SizedBox(height: 4),
-                                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                                      const Icon(
+                                        Icons.access_time,
+                                        size: 16,
+                                        color: Colors.grey,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -525,21 +624,38 @@ class _MataKuliahDetailScreenState
                                 // Detail
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text("$jamMulai - $jamSelesai", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                          Text(
+                                            "$jamMulai - $jamSelesai",
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
                                           _StatusBadge(status: status), // Badge
                                         ],
                                       ),
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [
-                                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                                          const Icon(
+                                            Icons.location_on,
+                                            size: 14,
+                                            color: Colors.grey,
+                                          ),
                                           const SizedBox(width: 4),
-                                          Text(jadwal.ruangan ?? "Ruang -", style: const TextStyle(color: Colors.grey)),
+                                          Text(
+                                            jadwal.ruangan ?? "Ruang -",
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ],
@@ -566,18 +682,18 @@ class _MataKuliahDetailScreenState
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
-                   icon: const Icon(Icons.add_task, color: Colors.blueAccent),
-                   tooltip: "Tambah Tugas",
-                   onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              AddEditTugasScreen(mataKuliahId: widget.matkul.id),
-                        ),
-                      );
-                   },
-                )
+                  icon: const Icon(Icons.add_task, color: Colors.blueAccent),
+                  tooltip: "Tambah Tugas",
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AddEditTugasScreen(mataKuliahId: widget.matkul.id),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
 
@@ -592,7 +708,7 @@ class _MataKuliahDetailScreenState
                   final filteredTugas = listTugas.where((t) {
                     return !ignoredTugasIds.contains(t.id);
                   }).toList();
-                  
+
                   // Sort by deadline
                   filteredTugas.sort((a, b) => a.dueAt.compareTo(b.dueAt));
 
@@ -609,12 +725,16 @@ class _MataKuliahDetailScreenState
                     itemCount: filteredTugas.length,
                     itemBuilder: (context, index) {
                       final tugas = filteredTugas[index];
-                      
+
                       // Cek Urgency (Logic sama dengan Home)
                       final timeLeft = tugas.dueAt.difference(DateTime.now());
-                      final isUrgent = timeLeft.inDays < 2 && !timeLeft.isNegative && tugas.status != 'Selesai';
+                      final isUrgent =
+                          timeLeft.inDays < 2 &&
+                          !timeLeft.isNegative &&
+                          tugas.status != 'Selesai';
                       Color cardColor = const Color(0xFF1E1E1E); // Default Dark
-                      if (isUrgent) cardColor = Colors.redAccent.withOpacity(0.1);
+                      if (isUrgent)
+                        cardColor = Colors.redAccent.withOpacity(0.1);
 
                       // --- Delete Tugas (Geser) ---
                       return Dismissible(
@@ -649,7 +769,7 @@ class _MataKuliahDetailScreenState
                             }
                           }
                         },
-                        
+
                         // [UI UPDATE] Menggunakan Styling mirip Home Screen
                         child: Card(
                           color: cardColor,
@@ -660,21 +780,32 @@ class _MataKuliahDetailScreenState
                             side: const BorderSide(color: Colors.white10),
                           ),
                           child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            onTap: () => _showTugasDetail(tugas), // Buka Bottom Sheet
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            onTap: () =>
+                                _showTugasDetail(tugas), // Buka Bottom Sheet
                             leading: CircleAvatar(
-                              backgroundColor: Colors.blueAccent.withOpacity(0.1),
+                              backgroundColor: Colors.blueAccent.withOpacity(
+                                0.1,
+                              ),
                               child: Icon(
-                                _getTaskIcon(tugas.type), 
-                                color: Colors.blueAccent, size: 20
+                                _getTaskIcon(tugas.type),
+                                color: Colors.blueAccent,
+                                size: 20,
                               ),
                             ),
                             title: Text(
                               tugas.title,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                decoration: tugas.status == 'Selesai' ? TextDecoration.lineThrough : null,
-                                color: tugas.status == 'Selesai' ? Colors.grey : null,
+                                decoration: tugas.status == 'Selesai'
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: tugas.status == 'Selesai'
+                                    ? Colors.grey
+                                    : null,
                               ),
                             ),
                             subtitle: Column(
@@ -683,14 +814,26 @@ class _MataKuliahDetailScreenState
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    Icon(Icons.timer, size: 12, color: isUrgent ? Colors.redAccent : Colors.grey),
+                                    Icon(
+                                      Icons.timer,
+                                      size: 12,
+                                      color: isUrgent
+                                          ? Colors.redAccent
+                                          : Colors.grey,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      DateFormat('dd MMM, HH:mm').format(tugas.dueAt),
+                                      DateFormat(
+                                        'dd MMM, HH:mm',
+                                      ).format(tugas.dueAt),
                                       style: TextStyle(
-                                        color: isUrgent ? Colors.redAccent : Colors.grey, 
+                                        color: isUrgent
+                                            ? Colors.redAccent
+                                            : Colors.grey,
                                         fontSize: 12,
-                                        fontWeight: isUrgent ? FontWeight.bold : FontWeight.normal
+                                        fontWeight: isUrgent
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
                                       ),
                                     ),
                                     const Spacer(),
@@ -701,21 +844,30 @@ class _MataKuliahDetailScreenState
                             ),
                             // Action Share dipindah ke trailing
                             trailing: IconButton(
-                              icon: const Icon(Icons.share, size: 20, color: Colors.blueAccent),
+                              icon: const Icon(
+                                Icons.share,
+                                size: 20,
+                                color: Colors.blueAccent,
+                              ),
                               tooltip: "Bagikan Tugas",
                               onPressed: () async {
-                                final receiverEmail = await _pickReceiver(context, ref);
+                                final receiverEmail = await _pickReceiver(
+                                  context,
+                                  ref,
+                                );
                                 if (receiverEmail == null) return;
-                        
+
                                 await ref
                                     .read(taskRepositoryProvider)
                                     .shareTugas(
                                       tugasId: tugas.id,
                                       receiverEmail: receiverEmail,
                                     );
-                        
+
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Dikirim ke $receiverEmail")),
+                                  SnackBar(
+                                    content: Text("Dikirim ke $receiverEmail"),
+                                  ),
                                 );
                               },
                             ),
@@ -735,7 +887,7 @@ class _MataKuliahDetailScreenState
       // Karena kita sudah memindahkan tombol "Tambah" ke samping Judul Section,
       // Kita bisa menghapus FAB agar layar lebih bersih dan tidak menutupi list paling bawah.
       // Namun jika Anda ingin tetap ada, bisa uncomment kode di bawah.
-      
+
       // floatingActionButton: Column(
       //   mainAxisSize: MainAxisSize.min,
       //   children: [ ... ],
@@ -753,7 +905,7 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color color;
-    
+
     // Tentukan warna berdasarkan string status
     switch (status) {
       case "Mendatang":
@@ -782,7 +934,7 @@ class _StatusBadge extends StatelessWidget {
         status,
         style: TextStyle(
           color: color,
-          fontSize: 10, 
+          fontSize: 10,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -799,7 +951,7 @@ class _StatusBadgeMini extends StatelessWidget {
     Color color = Colors.grey;
     if (status == "Dalam Pengerjaan") color = Colors.blueAccent;
     if (status == "Selesai") color = Colors.green;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
