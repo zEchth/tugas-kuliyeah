@@ -323,6 +323,8 @@ class _MataKuliahDetailScreenState
                                         .updateTugas(
                                           tugas.copyWith(status: status),
                                         );
+                                    
+                                    ref.read(globalRefreshProvider.notifier).state++;
 
                                     if (mounted) {
                                       ScaffoldMessenger.of(

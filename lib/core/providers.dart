@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:tugas_kuliyeah/core/models/task_attachment.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
 import 'package:tugas_kuliyeah/data/local/app_database.dart';
@@ -16,6 +17,8 @@ import 'package:tugas_kuliyeah/services/notification_service.dart';
 import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
+
+final globalRefreshProvider = StateProvider<int>((ref) => 0);
 
 final authStateProvider = StreamProvider<User?>((ref) {
   return Supabase.instance.client.auth.onAuthStateChange.map(
@@ -57,12 +60,14 @@ final allMataKuliahProvider = StreamProvider<List<core_model.MataKuliah>>((
 
 final jadwalByMatkulProvider =
     StreamProvider.family<List<core_model.Jadwal>, String>((ref, mataKuliahId) {
+      ref.watch(globalRefreshProvider); 
       final repository = ref.watch(taskRepositoryProvider);
       return repository.watchJadwalByMataKuliah(mataKuliahId);
     });
 
 final tugasByMatkulProvider =
     StreamProvider.family<List<core_model.Tugas>, String>((ref, mataKuliahId) {
+      ref.watch(globalRefreshProvider);   
       final repository = ref.watch(taskRepositoryProvider);
       return repository.watchTugasByMataKuliah(mataKuliahId);
     });
@@ -73,6 +78,7 @@ final allUsersProvider = FutureProvider((ref) async {
 });
 
 final inboxSharedTasksProvider = StreamProvider<List<ShareTugas>>((ref) {
+  ref.watch(globalRefreshProvider); 
   final auth = ref.watch(authStateProvider);
 
   return auth.when(
@@ -205,9 +211,15 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
   return AsyncData(joined);
 });
 
-// Atachment
+// Atachmen
 final attachmentsByTaskProvider =
-    FutureProvider.family<List<TaskAttachment>, String>((ref, taskId) async {
+    StreamProvider.family<List<TaskAttachment>, String>((ref, taskId) {
+      ref.watch(globalRefreshProvider); 
       final repo = ref.watch(taskRepositoryProvider);
-      return repo.getAttachmentsByTask(taskId);
+
+      return Supabase.instance.client
+          .from('task_attachments')
+          .stream(primaryKey: ['id'])
+          .eq('task_id', taskId)
+          .map((rows) => rows.map(TaskAttachment.fromMap).toList());
     });

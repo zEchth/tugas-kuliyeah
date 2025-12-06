@@ -242,6 +242,8 @@ class InboxSharedTaskScreen extends ConsumerWidget {
                     shareId: data.id,
                     receiverMatkulId: selectedMatkul!,
                   );
+                  
+              ref.read(globalRefreshProvider.notifier).state++;
 
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(

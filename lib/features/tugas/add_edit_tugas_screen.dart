@@ -161,6 +161,8 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
         }
       }
 
+      ref.read(globalRefreshProvider.notifier).state++;
+
       if (mounted) {
         ScaffoldMessenger.of(
           context,
