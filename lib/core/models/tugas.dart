@@ -1,4 +1,25 @@
 // lib/core/models/tugas.dart
+// class Tugas {
+//   final String id;
+//   final String mataKuliahId; // Kunci penghubung
+//   final String jenis; // "Tugas", "Kuis", "UTS", "UAS"
+//   final String deskripsi;
+//   final DateTime tenggatWaktu;
+
+//   // --- BAGIAN EKA (Fitur 5) ---
+//   final String? attachmentPath; // Path lokasi file (PDF/Image) di HP
+//   // ----------------------------
+
+//   Tugas({
+//     required this.id,
+//     required this.mataKuliahId,
+//     required this.jenis,
+//     required this.deskripsi,
+//     required this.tenggatWaktu,
+//     this.attachmentPath, // Bisa null jika tidak ada file
+//   });
+// }
+
 class Tugas {
   final String id;
   final String ownerId;
@@ -9,7 +30,7 @@ class Tugas {
   final DateTime createdAt;
   final String mataKuliahId;
   // --- BAGIAN EKA (Fitur 5) ---
-  // final String? attachmentPath; 
+  final String? attachmentPath; 
   
   // [BARU] Status Pengerjaan
   final String status;
@@ -26,7 +47,7 @@ class Tugas {
     required this.createdAt,
     required this.mataKuliahId,
     this.note,
-    // this.attachmentPath,
+    this.attachmentPath,
     this.status = 'Belum Dikerjakan', // Default value
     this.mataKuliahName,
   });
@@ -41,7 +62,7 @@ class Tugas {
       dueAt: DateTime.parse(map['due_at']),
       createdAt: DateTime.parse(map['created_at']),
       mataKuliahId: map['mata_kuliah_id'],
-      // attachmentPath: map['attachment_path'],
+      attachmentPath: map['attachment_path'],
       // Ambil status, default ke 'Belum Dikerjakan' jika null (safety)
       status: map['status'] ?? 'Belum Dikerjakan', 
       
@@ -63,7 +84,7 @@ class Tugas {
       'due_at': dueAt.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'mata_kuliah_id': mataKuliahId,
-      // 'attachment_path': attachmentPath, 
+      'attachment_path': attachmentPath, 
       'status': status, // Kirim status ke DB
     };
   }
@@ -78,6 +99,7 @@ class Tugas {
     DateTime? dueAt,
     DateTime? createdAt,
     String? mataKuliahId,
+    String? attachmentPath,
     String? status,
     String? mataKuliahName,
   }) {
@@ -90,6 +112,7 @@ class Tugas {
       dueAt: dueAt ?? this.dueAt,
       createdAt: createdAt ?? this.createdAt,
       mataKuliahId: mataKuliahId ?? this.mataKuliahId,
+      attachmentPath: attachmentPath ?? this.attachmentPath,
       status: status ?? this.status,
       mataKuliahName: mataKuliahName ?? this.mataKuliahName,
     );

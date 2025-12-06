@@ -1,19 +1,14 @@
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tugas_kuliyeah/core/models/share_tugas.dart';
-import 'package:tugas_kuliyeah/core/models/task_attachment.dart';
 import 'package:tugas_kuliyeah/core/models/tugas.dart';
 import 'package:tugas_kuliyeah/core/models/jadwal.dart';
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
-import 'dart:io';
 
 class SupabaseTaskRepository implements TaskRepository {
   final SupabaseClient client;
-  final Ref ref;
 
-  SupabaseTaskRepository(this.client, this.ref);
+  SupabaseTaskRepository(this.client);
 
   // ============================================================
   //                        MATA KULIAH
@@ -114,7 +109,7 @@ class SupabaseTaskRepository implements TaskRepository {
         .eq('mata_kuliah_id', matkulId)
         .map((rows) => rows.map(Tugas.fromMap).toList());
   }
-
+  
   // [BARU] Mengambil SEMUA tugas user
   @override
   Stream<List<Tugas>> watchAllTugas() {
@@ -174,52 +169,30 @@ class SupabaseTaskRepository implements TaskRepository {
 
   @override
   Stream<List<ShareTugas>> watchSharedTasksReceived(String myUserId) async* {
-    yield [];
-    
     final stream = client
         .from('share_tugas')
         .stream(primaryKey: ['id'])
         .eq('receiver_id', myUserId);
 
     await for (final rows in stream) {
-      // rows datang dari realtime; pastikan formatnya List<Map<String,dynamic>>
-      final List<Map<String, dynamic>> rowList =
-          List<Map<String, dynamic>>.from(rows);
+      final List<ShareTugas> result = [];
 
-      // Ambil semua sender_id unik
-      final senderIds = rowList
-          .map((r) => r['sender_id'] as String?)
-          .where((id) => id != null)
-          .map((id) => id!)
-          .toSet()
-          .toList();
-
-      // Ambil profile untuk semua sender dalam 1 query (kalo kosong => kosong)
-      Map<String, String> profileMap = {};
-      if (senderIds.isNotEmpty) {
-        final idList = senderIds.map((e) => '"$e"').join(',');
-
-        final profilesResp = await client
+      for (final row in rows) {
+        // 🔥 Ambil nama pengirim dari tabel profiles
+        final profile = await client
             .from('profiles')
-            .select('id, username')
-            .filter('id', 'in', '($idList)');
+            .select('username')
+            .eq('id', row['sender_id'])
+            .maybeSingle();
 
-        final List<dynamic> profilesList = List<dynamic>.from(profilesResp);
-        for (final p in profilesList) {
-          final id = p['id'] as String?;
-          final username = p['username'] as String?;
-          if (id != null && username != null) {
-            profileMap[id] = username;
-          }
-        }
+        result.add(
+          ShareTugas.fromMap({
+            ...row,
+            'username': profile?['username'] ?? profile?['data']?['username'],
+
+          }),
+        );
       }
-
-      final result = rowList.map((row) {
-        return ShareTugas.fromMap({
-          ...row,
-          'username': profileMap[row['sender_id']] ?? 'Unknown',
-        });
-      }).toList();
 
       yield result;
     }
@@ -255,148 +228,5 @@ class SupabaseTaskRepository implements TaskRepository {
     );
 
     return resp as String;
-  }
-
-  @override
-  Future<void> deleteShare(String shareId) async {
-    await client.from('share_tugas').delete().eq('id', shareId);
-  }
-
-  // ===================== ATTACHMENT UPLOAD =====================
-  @override
-  Future<void> uploadAttachment({
-    required String taskId,
-    required String filePath,
-  }) async {
-    final file = File(filePath);
-    final bytes = await file.readAsBytes();
-    final fileName = filePath.split('/').last;
-
-    final ext = fileName.split('.').last;
-    final mime = _extensionToMime(ext);
-
-    // nama unik
-    final uniqueName = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
-    final storagePath = 'attachment_folder/$taskId/$uniqueName';
-
-    // upload binary + metadata
-    final userId = client.auth.currentUser!.id;
-
-    await client.storage
-        .from('attachments')
-        .uploadBinary(
-          storagePath,
-          bytes,
-          fileOptions: FileOptions(
-            upsert: false,
-            metadata: {
-              "owner_id": userId, // WAJIB supaya RLS bisa baca
-            },
-          ),
-        );
-
-    // ambil public URL
-    final url = client.storage.from('attachments').getPublicUrl(storagePath);
-
-    // SIMPAN METADATA — TULIS YANG BENAR
-    await client.from('task_attachments').insert({
-      'task_id': taskId,
-      'owner_id': userId, // ✔ sudah benar
-      'path': storagePath,
-      'url': url,
-      'size': bytes.length,
-      'mime': mime,
-    });
-  }
-
-  // ===================== GET ATTACHMENTS =====================
-  @override
-  Future<List<TaskAttachment>> getAttachmentsByTask(String taskId) async {
-    final rows = await client
-        .from('task_attachments')
-        .select()
-        .eq('task_id', taskId);
-
-    return rows.map<TaskAttachment>((map) {
-      return TaskAttachment.fromMap(map);
-    }).toList();
-  }
-
-  // ===================== DELETE ATTACHMENTS =====================
-  @override
-  Future<void> deleteAttachment(int attachmentId) async {
-    final row = await client
-        .from('task_attachments')
-        .select('path')
-        .eq('id', attachmentId)
-        .maybeSingle();
-
-    if (row != null) {
-      final path = row['path'];
-
-      // hapus file storage
-      await client.storage.from('attachments').remove([path]);
-    }
-
-    // hapus metadata tabel
-    await client.from('task_attachments').delete().eq('id', attachmentId);
-  }
-
-  // ===================== MIME DETECTOR =====================
-  String _extensionToMime(String ext) {
-    switch (ext.toLowerCase()) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'doc':
-        return 'application/msword';
-      case 'docx':
-        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  // Web
-  @override
-  Future<void> uploadAttachmentWeb({
-    required String taskId,
-    required PlatformFile file,
-  }) async {
-    final bytes = file.bytes!;
-    final fileName = file.name;
-    final ext = fileName.split('.').last;
-
-    final mime = _extensionToMime(ext);
-
-    final uniqueName = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
-    final storagePath = 'attachment_folder/$taskId/$uniqueName';
-
-    final userId = client.auth.currentUser!.id;
-    await client.storage
-        .from('attachments')
-        .uploadBinary(
-          storagePath,
-          bytes,
-          fileOptions: FileOptions(
-            upsert: false,
-            metadata: {"owner_id": userId},
-          ),
-        );
-
-    final url = client.storage.from('attachments').getPublicUrl(storagePath);
-
-    await client.from('task_attachments').insert({
-      'task_id': taskId,
-      'owner_id': userId,
-      'path': storagePath,
-      'url': url,
-      'size': bytes.length,
-      'mime': mime,
-    });
   }
 }

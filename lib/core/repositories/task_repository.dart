@@ -1,9 +1,7 @@
 // lib/core/repositories/task_repository.dart
-import 'package:file_picker/file_picker.dart';
 import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/share_tugas.dart';
-import 'package:tugas_kuliyeah/core/models/task_attachment.dart';
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
 
 // KONTRAK semua penyimpanan data (lokal)
@@ -55,7 +53,7 @@ abstract class TaskRepository {
   Stream<List<core_model.Jadwal>> watchJadwalByMataKuliah(String matkulId);
   // [BARU] Untuk Home Screen (All Jadwal)
   Stream<List<core_model.Jadwal>> watchAllJadwal();
-
+  
   Future<void> insertJadwal(core_model.Jadwal jadwal);
   Future<void> updateJadwal(core_model.Jadwal jadwal);
   Future<void> deleteJadwal(String id);
@@ -64,7 +62,7 @@ abstract class TaskRepository {
   Stream<List<core_model.Tugas>> watchTugasByMataKuliah(String matkulId);
   // [BARU] Untuk Home Screen (All Tugas)
   Stream<List<core_model.Tugas>> watchAllTugas();
-
+  
   Future<void> insertTugas(core_model.Tugas tugas);
   Future<void> updateTugas(core_model.Tugas tugas);
   Future<void> deleteTugas(String id);
@@ -80,26 +78,8 @@ abstract class TaskRepository {
 
   Future<List<Map<String, dynamic>>> getAllUsers();
 
-  Future<String> acceptSharedTask({
+  Future<void> acceptSharedTask({
     required String shareId,
     required String receiverMatkulId,
-  });
-
-  Future<void> deleteShare(String shareId);
-
-  // ===================== ATTACHMENTS ======================
-  Future<void> uploadAttachment({
-    required String taskId,
-    required String filePath,
-  });
-
-  // Future<List<Map<String, dynamic>>> getAttachmentsByTask(String taskId);
-  Future<List<TaskAttachment>> getAttachmentsByTask(String taskId);
-
-  Future<void> deleteAttachment(int attachmentId);
-
-  Future<void> uploadAttachmentWeb({
-    required String taskId,
-    required PlatformFile file,
   });
 }

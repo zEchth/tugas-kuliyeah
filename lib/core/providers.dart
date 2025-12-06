@@ -1,6 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
-import 'package:tugas_kuliyeah/core/models/task_attachment.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
 import 'package:tugas_kuliyeah/data/local/app_database.dart';
 import 'package:tugas_kuliyeah/core/models/share_tugas.dart';
@@ -18,14 +16,6 @@ import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
 
-final globalRefreshProvider = StateProvider<int>((ref) => 0);
-
-final authStateProvider = StreamProvider<User?>((ref) {
-  return Supabase.instance.client.auth.onAuthStateChange.map(
-    (data) => data.session?.user,
-  );
-});
-
 final userProvider = Provider<User?>((ref) {
   return Supabase.instance.client.auth.currentUser;
 });
@@ -40,14 +30,13 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 });
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
-  // final db = ref.watch(databaseProvider);
-
+  final db = ref.watch(databaseProvider);
   // AMBIL SERVICE DARI PROVIDER
-  // final notifService = ref.read(notificationServiceProvider);
+  final notifService = ref.read(notificationServiceProvider);
 
   // MASUKKAN KE REPOSITORY
   // return LocalTaskRepository(db, notifService);
-  return SupabaseTaskRepository(Supabase.instance.client, ref);
+  return SupabaseTaskRepository(Supabase.instance.client);
 });
 
 // ... existing code ... (sisanya sama)
@@ -60,14 +49,12 @@ final allMataKuliahProvider = StreamProvider<List<core_model.MataKuliah>>((
 
 final jadwalByMatkulProvider =
     StreamProvider.family<List<core_model.Jadwal>, String>((ref, mataKuliahId) {
-      ref.watch(globalRefreshProvider); 
       final repository = ref.watch(taskRepositoryProvider);
       return repository.watchJadwalByMataKuliah(mataKuliahId);
     });
 
 final tugasByMatkulProvider =
     StreamProvider.family<List<core_model.Tugas>, String>((ref, mataKuliahId) {
-      ref.watch(globalRefreshProvider);   
       final repository = ref.watch(taskRepositoryProvider);
       return repository.watchTugasByMataKuliah(mataKuliahId);
     });
@@ -78,22 +65,8 @@ final allUsersProvider = FutureProvider((ref) async {
 });
 
 final inboxSharedTasksProvider = StreamProvider<List<ShareTugas>>((ref) {
-  ref.watch(globalRefreshProvider); 
-  final auth = ref.watch(authStateProvider);
-
-  return auth.when(
-    data: (user) {
-      if (user == null) {
-        return Stream.value([]); // user belum login
-      }
-
-      return ref
-          .watch(taskRepositoryProvider)
-          .watchSharedTasksReceived(user.id);
-    },
-    loading: () => const Stream.empty(),
-    error: (_, __) => const Stream.empty(),
-  );
+  final uid = Supabase.instance.client.auth.currentUser!.id;
+  return ref.watch(taskRepositoryProvider).watchSharedTasksReceived(uid);
 });
 
 // [SOLUSI v3.0] Menggunakan Notifier API (pengganti StateProvider Legacy)
@@ -151,9 +124,7 @@ final allJadwalRawProvider = StreamProvider<List<core_model.Jadwal>>((ref) {
 
 // 2. Provider "Pintar" yang menggabungkan (JOIN) data Matkul ke Tugas
 // agar kita bisa menampilkan "Nama Matkul" di Home Screen.
-final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
-  ref,
-) {
+final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((ref) {
   final tugasAsync = ref.watch(allTugasRawProvider);
   final matkulAsync = ref.watch(allMataKuliahProvider);
 
@@ -161,12 +132,8 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
     return const AsyncLoading();
   }
 
-  if (tugasAsync.hasError) {
-    return AsyncError(tugasAsync.error!, tugasAsync.stackTrace!);
-  }
-  if (matkulAsync.hasError) {
-    return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
-  }
+  if (tugasAsync.hasError) return AsyncError(tugasAsync.error!, tugasAsync.stackTrace!);
+  if (matkulAsync.hasError) return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
 
   final listTugas = tugasAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];
@@ -182,22 +149,16 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
 });
 
 // 3. Provider "Pintar" untuk Jadwal Lengkap
-final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
-  ref,
-) {
+final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((ref) {
   final jadwalAsync = ref.watch(allJadwalRawProvider);
   final matkulAsync = ref.watch(allMataKuliahProvider);
 
   if (jadwalAsync.isLoading || matkulAsync.isLoading) {
     return const AsyncLoading();
   }
-
-  if (jadwalAsync.hasError) {
-    return AsyncError(jadwalAsync.error!, jadwalAsync.stackTrace!);
-  }
-  if (matkulAsync.hasError) {
-    return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
-  }
+  
+  if (jadwalAsync.hasError) return AsyncError(jadwalAsync.error!, jadwalAsync.stackTrace!);
+  if (matkulAsync.hasError) return AsyncError(matkulAsync.error!, matkulAsync.stackTrace!);
 
   final listJadwal = jadwalAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];
@@ -210,19 +171,3 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
 
   return AsyncData(joined);
 });
-
-// Atachmen
-final attachmentsByTaskProvider =
-    StreamProvider.family<List<TaskAttachment>, String>((ref, taskId) {
-      ref.watch(globalRefreshProvider); 
-      // final repo = ref.watch(taskRepositoryProvider);
-
-      return Supabase.instance.client
-          .from('task_attachments')
-          .stream(primaryKey: ['id'])
-          .eq('task_id', taskId)
-          .map((rows) => rows.map(TaskAttachment.fromMap).toList());
-    });
-
-
-
