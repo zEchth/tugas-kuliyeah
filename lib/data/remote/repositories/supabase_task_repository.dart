@@ -181,23 +181,44 @@ class SupabaseTaskRepository implements TaskRepository {
         .eq('receiver_id', myUserId);
 
     await for (final rows in stream) {
-      final List<ShareTugas> result = [];
+      // rows datang dari realtime; pastikan formatnya List<Map<String,dynamic>>
+      final List<Map<String, dynamic>> rowList =
+          List<Map<String, dynamic>>.from(rows);
 
-      for (final row in rows) {
-        // 🔥 Ambil nama pengirim dari tabel profiles
-        final profile = await client
+      // Ambil semua sender_id unik
+      final senderIds = rowList
+          .map((r) => r['sender_id'] as String?)
+          .where((id) => id != null)
+          .map((id) => id!)
+          .toSet()
+          .toList();
+
+      // Ambil profile untuk semua sender dalam 1 query (kalo kosong => kosong)
+      Map<String, String> profileMap = {};
+      if (senderIds.isNotEmpty) {
+        final idList = senderIds.map((e) => '"$e"').join(',');
+
+        final profilesResp = await client
             .from('profiles')
-            .select('username')
-            .eq('id', row['sender_id'])
-            .maybeSingle();
+            .select('id, username')
+            .filter('id', 'in', '($idList)');
 
-        result.add(
-          ShareTugas.fromMap({
-            ...row,
-            'username': profile?['username'] ?? profile?['data']?['username'],
-          }),
-        );
+        final List<dynamic> profilesList = List<dynamic>.from(profilesResp);
+        for (final p in profilesList) {
+          final id = p['id'] as String?;
+          final username = p['username'] as String?;
+          if (id != null && username != null) {
+            profileMap[id] = username;
+          }
+        }
       }
+
+      final result = rowList.map((row) {
+        return ShareTugas.fromMap({
+          ...row,
+          'username': profileMap[row['sender_id']] ?? 'Unknown',
+        });
+      }).toList();
 
       yield result;
     }
@@ -233,6 +254,11 @@ class SupabaseTaskRepository implements TaskRepository {
     );
 
     return resp as String;
+  }
+
+  @override
+  Future<void> deleteShare(String shareId) async {
+    await client.from('share_tugas').delete().eq('id', shareId);
   }
 
   // ===================== ATTACHMENT UPLOAD =====================
@@ -280,7 +306,6 @@ class SupabaseTaskRepository implements TaskRepository {
       'size': bytes.length,
       'mime': mime,
     });
-
   }
 
   // ===================== GET ATTACHMENTS =====================
@@ -372,6 +397,5 @@ class SupabaseTaskRepository implements TaskRepository {
       'size': bytes.length,
       'mime': mime,
     });
-    
   }
 }

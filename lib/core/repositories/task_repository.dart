@@ -80,10 +80,12 @@ abstract class TaskRepository {
 
   Future<List<Map<String, dynamic>>> getAllUsers();
 
-  Future<void> acceptSharedTask({
+  Future<String> acceptSharedTask({
     required String shareId,
     required String receiverMatkulId,
   });
+
+  Future<void> deleteShare(String shareId);
 
   // ===================== ATTACHMENTS ======================
   Future<void> uploadAttachment({

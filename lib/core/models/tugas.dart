@@ -78,7 +78,6 @@ class Tugas {
     DateTime? dueAt,
     DateTime? createdAt,
     String? mataKuliahId,
-    // String? attachmentPath,
     String? status,
     String? mataKuliahName,
   }) {
@@ -91,7 +90,6 @@ class Tugas {
       dueAt: dueAt ?? this.dueAt,
       createdAt: createdAt ?? this.createdAt,
       mataKuliahId: mataKuliahId ?? this.mataKuliahId,
-      // attachmentPath: attachmentPath ?? this.attachmentPath,
       status: status ?? this.status,
       mataKuliahName: mataKuliahName ?? this.mataKuliahName,
     );

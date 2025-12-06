@@ -31,7 +31,7 @@ class ProfileScreen extends ConsumerWidget {
               children: [
                 CircleAvatar(
                   radius: 50,
-                  backgroundColor: Colors.white.withOpacity(0.1),
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
                   backgroundImage: userPhoto != null
                       ? CachedNetworkImageProvider(userPhoto)
                       : null,
