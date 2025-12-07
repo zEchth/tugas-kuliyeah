@@ -546,9 +546,8 @@ class _MataKuliahDetailScreenState
                   "Jadwal Kuliah",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle, color: Colors.blueAccent),
-                  tooltip: "Tambah Jadwal",
+                // [UI UPDATE] Ganti IconButton ke FilledButton.icon (Lebih intuitif)
+                FilledButton.icon(
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -558,6 +557,17 @@ class _MataKuliahDetailScreenState
                       ),
                     );
                   },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text("Tambah Jadwal"),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                  ),
                 ),
               ],
             ),
@@ -734,9 +744,8 @@ class _MataKuliahDetailScreenState
                   "Daftar Tugas",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add_task, color: Colors.blueAccent),
-                  tooltip: "Tambah Tugas",
+                // [UI UPDATE] Ganti IconButton ke FilledButton.icon (Lebih intuitif)
+                FilledButton.icon(
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -746,6 +755,17 @@ class _MataKuliahDetailScreenState
                       ),
                     );
                   },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text("Tambah Tugas"),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                  ),
                 ),
               ],
             ),
