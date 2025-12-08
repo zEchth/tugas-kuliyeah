@@ -2,8 +2,20 @@
 
 class Jadwal {
   final String id;
+  // [BARU] batchId untuk mengelompokkan 1 semester jadwal
+  final String batchId;
   final String ownerId;
-  final String hari;
+  
+  // [HAPUS] final String hari; -> Diganti tanggal spesifik
+  // [BARU] Tanggal spesifik pertemuan (YYYY-MM-DD)
+  final DateTime tanggal;
+  
+  // [BARU] Pertemuan ke-berapa (1, 2, 3...)
+  final int pertemuanKe;
+  
+  // [BARU] Status per pertemuan (Terjadwal, Selesai, Libur, dll)
+  final String statusPertemuan;
+
   final DateTime jamMulai;
   final DateTime jamSelesai;
   final String? ruangan;
@@ -15,8 +27,11 @@ class Jadwal {
 
   Jadwal({
     required this.id,
+    required this.batchId,
     required this.ownerId,
-    required this.hari,
+    required this.tanggal,
+    required this.pertemuanKe,
+    this.statusPertemuan = 'Terjadwal',
     required this.jamMulai,
     required this.jamSelesai,
     required this.ruangan,
@@ -24,6 +39,14 @@ class Jadwal {
     required this.mataKuliahId,
     this.mataKuliahName,
   });
+
+  // [COMPATIBILITY LAYER]
+  // Agar UI lama yang memanggil .hari tidak error, kita hitung dinamis dari tanggal
+  String get hari {
+    const hariList = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+    // weekday di Dart mulai dari 1 (Senin) sampai 7 (Minggu)
+    return hariList[tanggal.weekday - 1];
+  }
 
   // Convert DateTime -> TIME string for PostgreSQL
   static String _toPgTime(DateTime t) {
@@ -37,10 +60,18 @@ class Jadwal {
   factory Jadwal.fromMap(Map<String, dynamic> map) {
     return Jadwal(
       id: map['id'],
+      batchId: map['batch_id'] ?? '', // Safety check jika data lama null
       ownerId: map['owner_id'],
-      hari: map['hari'],
+      
+      // Parsing Tanggal (Date Only)
+      tanggal: DateTime.parse(map['tanggal']),
+      pertemuanKe: map['pertemuan_ke'] ?? 1,
+      statusPertemuan: map['status_pertemuan'] ?? 'Terjadwal',
+
+      // Parsing Jam (Time Only) - Kita tempel ke dummy date agar jadi DateTime object
       jamMulai: DateTime.parse("2025-01-01 ${map['jam_mulai']}"),
       jamSelesai: DateTime.parse("2025-01-01 ${map['jam_selesai']}"),
+      
       ruangan: map['ruangan'],
       createdAt: DateTime.parse(map['created_at']),
       mataKuliahId: map['mata_kuliah_id'],
@@ -55,8 +86,13 @@ class Jadwal {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'batch_id': batchId,
       'owner_id': ownerId,
-      'hari': hari,
+      
+      // DateTime -> Date String (YYYY-MM-DD)
+      'tanggal': tanggal.toIso8601String().split('T')[0],
+      'pertemuan_ke': pertemuanKe,
+      'status_pertemuan': statusPertemuan,
 
       // DateTime -> TIME (tanpa tanggal)
       'jam_mulai': _toPgTime(jamMulai),
@@ -68,48 +104,43 @@ class Jadwal {
     };
   }
 
-  // [BARU] Logika Status Jadwal
-  // Status: "Mendatang", "Berlangsung", "Selesai"
+  // [UPDATED] Logika Status Jadwal (Jauh lebih akurat sekarang)
   String getStatus(DateTime now) {
-    // 1. Cek Hari
-    final List<String> hariList = [
-      "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"
-    ];
+    // 1. Bandingkan Tanggal Dulu
+    // Kita buat object DateTime lengkap (Tanggal Real + Jam Real)
+    final startDateTime = DateTime(
+      tanggal.year, 
+      tanggal.month, 
+      tanggal.day, 
+      jamMulai.hour, 
+      jamMulai.minute
+    );
     
-    // Konversi hari string ke weekday int (1=Senin, 7=Minggu)
-    final int jadwalWeekday = hariList.indexOf(hari) + 1;
-    
-    if (jadwalWeekday == 0) return "Jadwal Error"; // Hari tidak valid
+    final endDateTime = DateTime(
+      tanggal.year, 
+      tanggal.month, 
+      tanggal.day, 
+      jamSelesai.hour, 
+      jamSelesai.minute
+    );
 
-    // Jika hari ini bukan harinya jadwal
-    if (now.weekday != jadwalWeekday) {
-      if (now.weekday < jadwalWeekday) {
-        return "Mendatang"; // Hari ini Senin, Jadwal Rabu -> Mendatang
-      } else {
-        return "Selesai"; // Hari ini Rabu, Jadwal Senin -> Selesai (minggu ini)
-      }
-    }
-
-    // 2. Jika Hari INI Sama, Cek Jam
-    // Normalisasi ke menit sejak jam 00:00
-    final int nowMinutes = now.hour * 60 + now.minute;
-    final int startMinutes = jamMulai.hour * 60 + jamMulai.minute;
-    final int endMinutes = jamSelesai.hour * 60 + jamSelesai.minute;
-
-    if (nowMinutes < startMinutes) {
+    if (now.isBefore(startDateTime)) {
       return "Mendatang";
-    } else if (nowMinutes >= startMinutes && nowMinutes <= endMinutes) {
-      return "Berlangsung";
-    } else {
+    } else if (now.isAfter(endDateTime)) {
       return "Selesai";
+    } else {
+      return "Berlangsung";
     }
   }
   
   // Helper copyWith
   Jadwal copyWith({
     String? id,
+    String? batchId,
     String? ownerId,
-    String? hari,
+    DateTime? tanggal,
+    int? pertemuanKe,
+    String? statusPertemuan,
     DateTime? jamMulai,
     DateTime? jamSelesai,
     String? ruangan,
@@ -119,8 +150,11 @@ class Jadwal {
   }) {
     return Jadwal(
       id: id ?? this.id,
+      batchId: batchId ?? this.batchId,
       ownerId: ownerId ?? this.ownerId,
-      hari: hari ?? this.hari,
+      tanggal: tanggal ?? this.tanggal,
+      pertemuanKe: pertemuanKe ?? this.pertemuanKe,
+      statusPertemuan: statusPertemuan ?? this.statusPertemuan,
       jamMulai: jamMulai ?? this.jamMulai,
       jamSelesai: jamSelesai ?? this.jamSelesai,
       ruangan: ruangan ?? this.ruangan,
