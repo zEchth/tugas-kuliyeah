@@ -1,4 +1,6 @@
+// lib/data/remote/repositories/supabase_task_repository.dart
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart'; // TimeOfDay
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tugas_kuliyeah/core/models/share_tugas.dart';
@@ -8,6 +10,7 @@ import 'package:tugas_kuliyeah/core/models/jadwal.dart';
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
 import 'dart:io';
+import 'package:uuid/uuid.dart'; // Butuh ini untuk generate ID
 
 class SupabaseTaskRepository implements TaskRepository {
   final SupabaseClient client;
@@ -21,7 +24,7 @@ class SupabaseTaskRepository implements TaskRepository {
 
   @override
   Stream<List<MataKuliah>> watchAllMataKuliah() {
-    final uid = Supabase.instance.client.auth.currentUser!.id;
+    final uid = client.auth.currentUser!.id;
 
     return client
         .from('mata_kuliah')
@@ -58,35 +61,86 @@ class SupabaseTaskRepository implements TaskRepository {
   Stream<List<Jadwal>> watchJadwalByMataKuliah(String matkulId) {
     final uid = Supabase.instance.client.auth.currentUser!.id;
     return client.from('jadwal_kuliah').stream(primaryKey: ['id'])
-    // .eq('mata_kuliah_id', matkulId)
-    // .eq('owner_id', uid)
     .map((rows) {
-      return rows
+      final list = rows
           .map(Jadwal.fromMap)
           .where((j) => j.ownerId == uid && j.mataKuliahId == matkulId)
           .toList();
+      
+      // [FIX] Sort berdasarkan TANGGAL, bukan hari string lagi
+      list.sort((a, b) => a.tanggal.compareTo(b.tanggal));
+      return list;
     });
   }
 
-  // [BARU] Mengambil SEMUA jadwal user (tanpa filter matkul)
   @override
   Stream<List<Jadwal>> watchAllJadwal() {
-    final uid = Supabase.instance.client.auth.currentUser!.id;
+    final uid = client.auth.currentUser!.id;
     return client
         .from('jadwal_kuliah')
         .stream(primaryKey: ['id'])
         .eq('owner_id', uid)
-        .map((rows) => rows.map(Jadwal.fromMap).toList());
+        .map((rows) {
+           final list = rows.map(Jadwal.fromMap).toList();
+           // [FIX] Sort tanggal global
+           list.sort((a, b) => a.tanggal.compareTo(b.tanggal));
+           return list;
+        });
   }
 
+  // [IMPLEMENTASI INTI] Logic "Input Sekali, Generate Banyak"
   @override
-  Future<void> insertJadwal(Jadwal jadwal) async {
-    final uid = Supabase.instance.client.auth.currentUser!.id;
+  Future<void> generateJadwalSemester({
+    required String mataKuliahId,
+    required DateTime tanggalMulai,
+    required int jumlahPertemuan,
+    required TimeOfDay jamMulai,
+    required TimeOfDay jamSelesai,
+    required String ruangan,
+  }) async {
+    final uid = client.auth.currentUser!.id;
+    final batchId = const Uuid().v4(); // ID Paket untuk 1 semester ini
+    
+    // Siapkan list untuk Bulk Insert
+    List<Map<String, dynamic>> batchData = [];
 
-    await client.from('jadwal_kuliah').insert({
-      ...jadwal.toMap(),
-      'owner_id': uid,
-    });
+    // Konversi TimeOfDay ke String HH:mm:ss
+    // Kita pakai dummy date 2000-01-01, lalu ambil time part-nya
+    final startT = _formatTimeOfDay(jamMulai);
+    final endT = _formatTimeOfDay(jamSelesai);
+
+    for (int i = 0; i < jumlahPertemuan; i++) {
+      // Logic Mingguan: Tanggal Mulai + (i * 7 hari)
+      final tanggalPertemuan = tanggalMulai.add(Duration(days: i * 7));
+      final pertemuanKe = i + 1;
+
+      batchData.add({
+        'id': const Uuid().v4(),
+        'owner_id': uid,
+        'mata_kuliah_id': mataKuliahId,
+        'batch_id': batchId,
+        
+        // Simpan Date String (YYYY-MM-DD)
+        'tanggal': tanggalPertemuan.toIso8601String().split('T')[0],
+        'pertemuan_ke': pertemuanKe,
+        'status_pertemuan': 'Terjadwal',
+
+        'jam_mulai': startT,
+        'jam_selesai': endT,
+        'ruangan': ruangan,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    }
+
+    // Eksekusi Bulk Insert ke Supabase
+    await client.from('jadwal_kuliah').insert(batchData);
+  }
+
+  // Helper time formatting
+  String _formatTimeOfDay(TimeOfDay t) {
+    final h = t.hour.toString().padLeft(2, '0');
+    final m = t.minute.toString().padLeft(2, '0');
+    return "$h:$m:00";
   }
 
   @override
@@ -105,6 +159,7 @@ class SupabaseTaskRepository implements TaskRepository {
   // ============================================================
   //                            TUGAS
   // ============================================================
+  // (Bagian Tugas tidak berubah, tetapi tetap disertakan agar valid)
 
   @override
   Stream<List<Tugas>> watchTugasByMataKuliah(String matkulId) {
@@ -115,7 +170,6 @@ class SupabaseTaskRepository implements TaskRepository {
         .map((rows) => rows.map(Tugas.fromMap).toList());
   }
 
-  // [BARU] Mengambil SEMUA tugas user
   @override
   Stream<List<Tugas>> watchAllTugas() {
     final uid = Supabase.instance.client.auth.currentUser!.id;
@@ -175,18 +229,15 @@ class SupabaseTaskRepository implements TaskRepository {
   @override
   Stream<List<ShareTugas>> watchSharedTasksReceived(String myUserId) async* {
     yield [];
-    
     final stream = client
         .from('share_tugas')
         .stream(primaryKey: ['id'])
         .eq('receiver_id', myUserId);
 
     await for (final rows in stream) {
-      // rows datang dari realtime; pastikan formatnya List<Map<String,dynamic>>
       final List<Map<String, dynamic>> rowList =
           List<Map<String, dynamic>>.from(rows);
 
-      // Ambil semua sender_id unik
       final senderIds = rowList
           .map((r) => r['sender_id'] as String?)
           .where((id) => id != null)
@@ -194,7 +245,6 @@ class SupabaseTaskRepository implements TaskRepository {
           .toSet()
           .toList();
 
-      // Ambil profile untuk semua sender dalam 1 query (kalo kosong => kosong)
       Map<String, String> profileMap = {};
       if (senderIds.isNotEmpty) {
         final idList = senderIds.map((e) => '"$e"').join(',');
@@ -253,7 +303,6 @@ class SupabaseTaskRepository implements TaskRepository {
       'accept_shared_task',
       params: {'share_id': shareId, 'target_mata_kuliah': receiverMatkulId},
     );
-
     return resp as String;
   }
 
@@ -262,7 +311,8 @@ class SupabaseTaskRepository implements TaskRepository {
     await client.from('share_tugas').delete().eq('id', shareId);
   }
 
-  // ===================== ATTACHMENT UPLOAD =====================
+  // ===================== ATTACHMENTS =====================
+
   @override
   Future<void> uploadAttachment({
     required String taskId,
@@ -271,20 +321,13 @@ class SupabaseTaskRepository implements TaskRepository {
     final file = File(filePath);
     final bytes = await file.readAsBytes();
     final fileName = filePath.split('/').last;
-
     final ext = fileName.split('.').last;
     final mime = _extensionToMime(ext);
-
-    // nama unik
     final uniqueName = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
     final storagePath = 'attachment_folder/$taskId/$uniqueName';
-
-    // upload binary + metadata
     final userId = client.auth.currentUser!.id;
 
-    await client.storage
-        .from('attachments')
-        .uploadBinary(
+    await client.storage.from('attachments').uploadBinary(
           storagePath,
           bytes,
           fileOptions: FileOptions(
@@ -295,13 +338,11 @@ class SupabaseTaskRepository implements TaskRepository {
           ),
         );
 
-    // ambil public URL
     final url = client.storage.from('attachments').getPublicUrl(storagePath);
 
-    // SIMPAN METADATA — TULIS YANG BENAR
     await client.from('task_attachments').insert({
       'task_id': taskId,
-      'owner_id': userId, // ✔ sudah benar
+      'owner_id': userId, 
       'path': storagePath,
       'url': url,
       'size': bytes.length,
@@ -309,7 +350,6 @@ class SupabaseTaskRepository implements TaskRepository {
     });
   }
 
-  // ===================== GET ATTACHMENTS =====================
   @override
   Future<List<TaskAttachment>> getAttachmentsByTask(String taskId) async {
     final rows = await client
@@ -322,7 +362,6 @@ class SupabaseTaskRepository implements TaskRepository {
     }).toList();
   }
 
-  // ===================== DELETE ATTACHMENTS =====================
   @override
   Future<void> deleteAttachment(int attachmentId) async {
     final row = await client
@@ -333,35 +372,11 @@ class SupabaseTaskRepository implements TaskRepository {
 
     if (row != null) {
       final path = row['path'];
-
-      // hapus file storage
       await client.storage.from('attachments').remove([path]);
     }
-
-    // hapus metadata tabel
     await client.from('task_attachments').delete().eq('id', attachmentId);
   }
 
-  // ===================== MIME DETECTOR =====================
-  String _extensionToMime(String ext) {
-    switch (ext.toLowerCase()) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'doc':
-        return 'application/msword';
-      case 'docx':
-        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  // Web
   @override
   Future<void> uploadAttachmentWeb({
     required String taskId,
@@ -370,16 +385,12 @@ class SupabaseTaskRepository implements TaskRepository {
     final bytes = file.bytes!;
     final fileName = file.name;
     final ext = fileName.split('.').last;
-
     final mime = _extensionToMime(ext);
-
     final uniqueName = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
     final storagePath = 'attachment_folder/$taskId/$uniqueName';
-
     final userId = client.auth.currentUser!.id;
-    await client.storage
-        .from('attachments')
-        .uploadBinary(
+
+    await client.storage.from('attachments').uploadBinary(
           storagePath,
           bytes,
           fileOptions: FileOptions(
@@ -398,5 +409,17 @@ class SupabaseTaskRepository implements TaskRepository {
       'size': bytes.length,
       'mime': mime,
     });
+  }
+
+  String _extensionToMime(String ext) {
+    switch (ext.toLowerCase()) {
+      case 'pdf': return 'application/pdf';
+      case 'jpg':
+      case 'jpeg': return 'image/jpeg';
+      case 'png': return 'image/png';
+      case 'doc': return 'application/msword';
+      case 'docx': return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      default: return 'application/octet-stream';
+    }
   }
 }
