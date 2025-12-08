@@ -32,10 +32,6 @@ class MataKuliahDetailScreen extends ConsumerStatefulWidget {
 
 class _MataKuliahDetailScreenState
     extends ConsumerState<MataKuliahDetailScreen> {
-  // [SOLUSI] Local Temporary Filters -> DIPINDAHKAN KE GLOBAL PROVIDER
-  // Kita tidak lagi menggunakan Set lokal agar state tetap tersimpan saat pindah halaman.
-  // final Set<String> _tempDeletedJadwalIds = {};
-  // final Set<String> _tempDeletedTugasIds = {};
 
   Future<String> downloadToTemp(String url) async {
     final response = await http.get(Uri.parse(url));
@@ -964,15 +960,6 @@ class _MataKuliahDetailScreenState
           ],
         ),
       ),
-      // --- MODIFIKASI FAB ---
-      // Karena kita sudah memindahkan tombol "Tambah" ke samping Judul Section,
-      // Kita bisa menghapus FAB agar layar lebih bersih dan tidak menutupi list paling bawah.
-      // Namun jika Anda ingin tetap ada, bisa uncomment kode di bawah.
-
-      // floatingActionButton: Column(
-      //   mainAxisSize: MainAxisSize.min,
-      //   children: [ ... ],
-      // ),
     );
   }
 }

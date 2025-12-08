@@ -5,10 +5,6 @@ import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/add_edit_mata_kuliah_screen.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_detail_screen.dart';
 
-// [REFACTOR] Screen ini sekarang bersih dari Logic Logout, Profil, & Notifikasi Permission
-// Logic notifikasi dipindah ke MainNavigationScreen
-// Logic Profil & Logout dipindah ke ProfileScreen
-
 class MataKuliahListScreen extends ConsumerStatefulWidget {
   const MataKuliahListScreen({super.key});
 
@@ -18,8 +14,6 @@ class MataKuliahListScreen extends ConsumerStatefulWidget {
 }
 
 class _MataKuliahListScreenState extends ConsumerState<MataKuliahListScreen> {
-  // [SOLUSI] Local Temporary Filter -> DIPINDAHKAN KE GLOBAL PROVIDER
-  // Menyimpan ID item yang sedang dihapus secara visual menunggu konfirmasi DB.
 
   // --- [BARU] Search Controller ---
   final TextEditingController _searchController = TextEditingController();
