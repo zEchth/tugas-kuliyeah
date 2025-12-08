@@ -6,7 +6,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
-import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_detail_screen.dart';
+// import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_detail_screen.dart'; // (Tetap mempertahankan import jika dibutuhkan di masa depan)
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +16,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  // Default format
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -61,6 +62,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     events.addAll(tugasHariIni);
 
     return events;
+  }
+
+  // --- LOGIKA BARU: SIKLUS 3 MODE VIEW ---
+  void _cycleCalendarFormat() {
+    setState(() {
+      if (_calendarFormat == CalendarFormat.week) {
+        _calendarFormat = CalendarFormat.twoWeeks;
+      } else if (_calendarFormat == CalendarFormat.twoWeeks) {
+        _calendarFormat = CalendarFormat.month;
+      } else {
+        _calendarFormat = CalendarFormat.week;
+      }
+    });
+  }
+
+  // Helper untuk mendapatkan label text berdasarkan mode saat ini
+  String _getFormatLabel() {
+    switch (_calendarFormat) {
+      case CalendarFormat.week:
+        return "Mingguan";
+      case CalendarFormat.twoWeeks:
+        return "2 Minggu";
+      case CalendarFormat.month:
+        return "Bulanan";
+      default:
+        return "Mingguan";
+    }
   }
 
   // BottomSheet Detail Jadwal
@@ -139,6 +167,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               .read(taskRepositoryProvider)
                               .updateTugas(tugas.copyWith(status: status));
 
+                          // Force refresh home screen data
+                          ref.refresh(allTugasRawProvider);
+
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text("Status diupdate: $status")));
@@ -196,6 +227,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final asyncTugas = ref.watch(allTugasLengkapProvider);
 
     return Scaffold(
+      // Background scaffold dibiarkan default theme (biasanya hitam/dark grey di mode dark)
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -219,7 +251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // BAGIAN KALENDER (Custom Header + Calendar)
               asyncJadwal.when(
@@ -241,42 +273,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Bulan & Tahun
+                                // Bulan & Tahun (Lebih besar dan bersih)
                                 Text(
                                   DateFormat('MMMM yyyy', 'id_ID').format(_focusedDay),
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                                 ),
-                                // Tombol View Mode
-                                InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _calendarFormat = _calendarFormat == CalendarFormat.week
-                                          ? CalendarFormat.month
-                                          : CalendarFormat.week;
-                                    });
-                                  },
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.05),
-                                      border: Border.all(color: Colors.white24),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Text("View Mode: ", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                                        Text(
-                                          _calendarFormat == CalendarFormat.week ? "Mingguan" : "Bulanan",
-                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                // Tombol View Mode (Restyled)
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: _cycleCalendarFormat,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueAccent.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: Colors.blueAccent.withOpacity(0.3)
                                         ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          _calendarFormat == CalendarFormat.week ? Icons.expand_more : Icons.expand_less,
-                                          size: 16,
-                                          color: Colors.blueAccent,
-                                        ),
-                                      ],
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            _getFormatLabel(),
+                                            style: const TextStyle(
+                                              fontSize: 12, 
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blueAccent
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            _calendarFormat == CalendarFormat.month 
+                                              ? Icons.unfold_less 
+                                              : Icons.unfold_more,
+                                            size: 16,
+                                            color: Colors.blueAccent,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -284,6 +320,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                           ),
                           // Widget Kalender
+                          const SizedBox(height: 8),
                           _buildCalendar(listJadwal, listTugas),
                         ],
                       );
@@ -292,7 +329,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 },
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // LIST 1: AGENDA HARI TERPILIH (Jadwal & Tugas Tanggal Itu)
               Padding(
@@ -332,84 +369,95 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // Widget Kalender (Tanpa Header Default)
+  // Widget Kalender (Restyled: Minimalis & Elegan)
   Widget _buildCalendar(List<core_model.Jadwal> jadwalList, List<core_model.Tugas> tugasList) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+    return TableCalendar(
+      locale: 'id_ID',
+      firstDay: DateTime.utc(2023, 1, 1),
+      lastDay: DateTime.utc(2030, 12, 31),
+      focusedDay: _focusedDay,
+      calendarFormat: _calendarFormat,
+      
+      // Menonaktifkan header default karena sudah membuat custom header di atas
+      headerVisible: false, 
+
+      // Styling Minimalis
+      daysOfWeekStyle: const DaysOfWeekStyle(
+        weekdayStyle: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
+        weekendStyle: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
       ),
-      child: TableCalendar(
-        locale: 'id_ID',
-        firstDay: DateTime.utc(2023, 1, 1),
-        lastDay: DateTime.utc(2030, 12, 31),
-        focusedDay: _focusedDay,
-        calendarFormat: _calendarFormat,
-        headerVisible: false, // Hide header default karena kita pakai custom di atas
-
-        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-        onDaySelected: (selectedDay, focusedDay) {
-          if (!isSameDay(_selectedDay, selectedDay)) {
-            setState(() {
-              _selectedDay = selectedDay;
-              _focusedDay = focusedDay;
-            });
-          }
-        },
-        onFormatChanged: (format) {
-          if (_calendarFormat != format) {
-            setState(() => _calendarFormat = format);
-          }
-        },
-        onPageChanged: (focusedDay) => _focusedDay = focusedDay,
-
-        eventLoader: (day) => _getEventsForDay(day, jadwalList, tugasList),
-
-        calendarStyle: const CalendarStyle(
-          markerDecoration: BoxDecoration(
-            color: Colors.blueAccent,
-            shape: BoxShape.circle,
-          ),
-          todayDecoration: BoxDecoration(
-            color: Colors.white24,
-            shape: BoxShape.circle,
-          ),
-          selectedDecoration: BoxDecoration(
-            color: Colors.blueAccent,
-            shape: BoxShape.circle,
-          ),
+      
+      calendarStyle: CalendarStyle(
+        // Font Default
+        defaultTextStyle: const TextStyle(color: Colors.white),
+        weekendTextStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+        
+        // Tanggal Terpilih (Selected) -> Lingkaran Solid Biru
+        selectedDecoration: const BoxDecoration(
+          color: Colors.blueAccent,
+          shape: BoxShape.circle,
         ),
-        calendarBuilders: CalendarBuilders(
-          markerBuilder: (context, day, events) {
-            if (events.isEmpty) return null;
-
-            bool hasTugas = events.any((e) => e is core_model.Tugas);
-            bool hasJadwal = events.any((e) => e is core_model.Jadwal);
-
-            return Positioned(
-              bottom: 1,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (hasJadwal)
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                      width: 5, height: 5,
-                      decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
-                    ),
-                  if (hasTugas)
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                      width: 5, height: 5,
-                      decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                    ),
-                ],
-              ),
-            );
-          },
+        
+        // Hari Ini (Today) -> Outline Biru (Biar beda dengan selected)
+        todayDecoration: BoxDecoration(
+          color: Colors.transparent,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.blueAccent, width: 1.5),
         ),
+        todayTextStyle: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+        
+        // Hari di luar bulan (dimatikan visualnya agar bersih)
+        outsideDaysVisible: false, 
+      ),
+
+      // Logic Seleksi
+      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+      onDaySelected: (selectedDay, focusedDay) {
+        if (!isSameDay(_selectedDay, selectedDay)) {
+          setState(() {
+            _selectedDay = selectedDay;
+            _focusedDay = focusedDay;
+          });
+        }
+      },
+      onFormatChanged: (format) {
+        if (_calendarFormat != format) {
+          setState(() => _calendarFormat = format);
+        }
+      },
+      onPageChanged: (focusedDay) => _focusedDay = focusedDay,
+
+      eventLoader: (day) => _getEventsForDay(day, jadwalList, tugasList),
+
+      // Marker Builder (Titik Penanda Tugas/Jadwal)
+      calendarBuilders: CalendarBuilders(
+        markerBuilder: (context, day, events) {
+          if (events.isEmpty) return null;
+
+          bool hasTugas = events.any((e) => e is core_model.Tugas);
+          bool hasJadwal = events.any((e) => e is core_model.Jadwal);
+
+          return Positioned(
+            bottom: 4, // Posisi marker
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasJadwal)
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                    width: 4, height: 4, // Marker lebih kecil & rapi
+                    decoration: const BoxDecoration(color: Colors.lightBlueAccent, shape: BoxShape.circle),
+                  ),
+                if (hasTugas)
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                    width: 4, height: 4,
+                    decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -434,9 +482,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Text(
-            "Tidak ada agenda di tanggal ini.",
-            style: TextStyle(color: Colors.grey[600]),
+          child: Column(
+            children: [
+              Icon(Icons.event_busy, size: 40, color: Colors.grey.withOpacity(0.3)),
+              const SizedBox(height: 8),
+              Text(
+                "Tidak ada agenda.",
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ],
           ),
         ),
       );
@@ -663,7 +717,7 @@ class _StatusBadgeMini extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color = Colors.grey;
+    Color color = Color(0xFFE0C9A6);
     if (status == "Berlangsung") color = Colors.blueAccent;
     if (status == "Selesai") color = Colors.green;
 
