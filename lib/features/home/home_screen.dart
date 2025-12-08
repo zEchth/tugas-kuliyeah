@@ -28,7 +28,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _selectedDay = _focusedDay;
   }
 
-  // Helper konversi hari DateTime ke string database
+  // [HAPUS/KOMENTAR] Helper lama tidak lagi dibutuhkan karena kita pakai tanggal spesifik
+  /*
   String _getDayNameFromDate(DateTime date) {
     switch (date.weekday) {
       case 1: return "Senin";
@@ -41,8 +42,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       default: return "Senin";
     }
   }
+  */
 
-  // Mengambil event (Jadwal & Tugas) untuk tanggal tertentu
+  // [PERBAIKAN LOGIKA] Mengambil event (Jadwal & Tugas) untuk tanggal tertentu
   List<dynamic> _getEventsForDay(
     DateTime day,
     List<core_model.Jadwal> allJadwal,
@@ -50,12 +52,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   ) {
     List<dynamic> events = [];
 
-    // Cek Jadwal Kuliah (Recurring)
-    final dayName = _getDayNameFromDate(day);
-    final jadwalHariIni = allJadwal.where((j) => j.hari == dayName).toList();
+    // 1. Cek Jadwal Kuliah (Sekarang berdasarkan TANGGAL SPESIFIK)
+    // Logika Lama: allJadwal.where((j) => j.hari == dayName)... -> SALAH untuk skema baru
+    // Logika Baru: Cek apakah tanggalnya sama persis
+    final jadwalHariIni = allJadwal.where((j) {
+      return isSameDay(j.tanggal, day); 
+    }).toList();
+    
     events.addAll(jadwalHariIni);
 
-    // Cek Tugas (One-time)
+    // 2. Cek Tugas (One-time)
     final tugasHariIni = allTugas.where((t) {
       return isSameDay(t.dueAt, day);
     }).toList();
@@ -92,6 +98,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   // BottomSheet Detail Jadwal
+  // [UPDATE] Menampilkan Pertemuan Ke & Status
   void _showJadwalDetail(core_model.Jadwal jadwal) {
     showModalBottomSheet(
       context: context,
@@ -104,15 +111,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                jadwal.mataKuliahName ?? "Jadwal Kuliah",
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      jadwal.mataKuliahName ?? "Jadwal Kuliah",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  _StatusBadge(status: jadwal.statusPertemuan),
+                ],
               ),
+              const SizedBox(height: 8),
+              
+              // Info Pertemuan Ke
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  "Pertemuan ke-${jadwal.pertemuanKe}",
+                  style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+
               const SizedBox(height: 16),
-              _buildDetailRow(Icons.calendar_today, "Setiap Hari ${jadwal.hari}"),
+              _buildDetailRow(
+                Icons.calendar_today, 
+                DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(jadwal.tanggal)
+              ),
               _buildDetailRow(Icons.access_time,
                   "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)}"),
               _buildDetailRow(Icons.location_on, jadwal.ruangan ?? "-"),
+              
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -373,8 +407,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildCalendar(List<core_model.Jadwal> jadwalList, List<core_model.Tugas> tugasList) {
     return TableCalendar(
       locale: 'id_ID',
-      firstDay: DateTime.utc(2023, 1, 1),
-      lastDay: DateTime.utc(2030, 12, 31),
+      // [UPDATE] Rentang tahun yang cukup lebar agar bisa swipe bulan
+      firstDay: DateTime.utc(2020, 1, 1), 
+      lastDay: DateTime.utc(2035, 12, 31),
       focusedDay: _focusedDay,
       calendarFormat: _calendarFormat,
       
@@ -425,7 +460,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           setState(() => _calendarFormat = format);
         }
       },
-      onPageChanged: (focusedDay) => _focusedDay = focusedDay,
+      // [FIX] Update _focusedDay saat swipe bulan
+      onPageChanged: (focusedDay) {
+        setState(() {
+          _focusedDay = focusedDay;
+        });
+      },
 
       eventLoader: (day) => _getEventsForDay(day, jadwalList, tugasList),
 
@@ -500,18 +540,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     events.sort((a, b) {
       DateTime timeA;
       if (a is core_model.Jadwal) {
-        timeA = DateTime(2000, 1, 1, a.jamMulai.hour, a.jamMulai.minute);
+        // [FIX] Konstruksi DateTime dari tanggal jadwal + jam jadwal
+        // Karena jamMulai di DB mungkin tanggalnya dummy (2000-01-01), kita gabung manual
+        timeA = DateTime(
+          a.tanggal.year, a.tanggal.month, a.tanggal.day, 
+          a.jamMulai.hour, a.jamMulai.minute
+        );
       } else {
         timeA = (a as core_model.Tugas).dueAt;
-        timeA = DateTime(2000, 1, 1, timeA.hour, timeA.minute);
       }
 
       DateTime timeB;
       if (b is core_model.Jadwal) {
-        timeB = DateTime(2000, 1, 1, b.jamMulai.hour, b.jamMulai.minute);
+        timeB = DateTime(
+          b.tanggal.year, b.tanggal.month, b.tanggal.day, 
+          b.jamMulai.hour, b.jamMulai.minute
+        );
       } else {
         timeB = (b as core_model.Tugas).dueAt;
-        timeB = DateTime(2000, 1, 1, timeB.hour, timeB.minute);
       }
 
       return timeA.compareTo(timeB);
@@ -582,7 +628,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // --- Helper UI Components ---
 
   Widget _buildJadwalCard(core_model.Jadwal item) {
+    // [UPDATE] Gunakan getStatus() yang baru (berbasis Tanggal & Jam)
     final status = item.getStatus(DateTime.now());
+    
     return GestureDetector(
       onTap: () => _showJadwalDetail(item),
       child: Container(
@@ -630,6 +678,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const SizedBox(width: 10),
                       _StatusBadgeMini(status: status),
                     ],
+                  ),
+                  // [BARU] Indikator Pertemuan Ke
+                  const SizedBox(height: 4),
+                  Text(
+                    "Pertemuan ke-${item.pertemuanKe}",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 10),
                   ),
                 ],
               ),
@@ -711,13 +765,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color = const Color(0xFFE0C9A6);
+    if (status == "Berlangsung") color = Colors.blueAccent;
+    if (status == "Selesai") color = Colors.green;
+    if (status == "Dibatalkan" || status == "Libur") color = Colors.red;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.1),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
+
 class _StatusBadgeMini extends StatelessWidget {
   final String status;
   const _StatusBadgeMini({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    Color color = Color(0xFFE0C9A6);
+    Color color = const Color(0xFFE0C9A6);
     if (status == "Berlangsung") color = Colors.blueAccent;
     if (status == "Selesai") color = Colors.green;
 
