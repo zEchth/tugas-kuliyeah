@@ -151,11 +151,15 @@ final allJadwalRawProvider = StreamProvider<List<core_model.Jadwal>>((ref) {
 
 // 2. Provider "Pintar" yang menggabungkan (JOIN) data Matkul ke Tugas
 // agar kita bisa menampilkan "Nama Matkul" di Home Screen.
+// [FIX] UPDATE: Sekarang mendengarkan tempDeletedTugasProvider untuk mengatasi Data Hantu
 final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
   ref,
 ) {
   final tugasAsync = ref.watch(allTugasRawProvider);
   final matkulAsync = ref.watch(allMataKuliahProvider);
+  
+  // [BARU] Ambil list ID yang dihapus sementara
+  final ignoredIds = ref.watch(tempDeletedTugasProvider);
 
   if (tugasAsync.isLoading || matkulAsync.isLoading) {
     return const AsyncLoading();
@@ -171,8 +175,11 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
   final listTugas = tugasAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];
 
+  // [BARU] Filter data hantu SEBELUM di-join
+  final filteredTugas = listTugas.where((t) => !ignoredIds.contains(t.id)).toList();
+
   // Client-Side JOIN
-  final joined = listTugas.map((tugas) {
+  final joined = filteredTugas.map((tugas) {
     // Cari nama matkul berdasarkan ID
     final mk = listMatkul.where((m) => m.id == tugas.mataKuliahId).firstOrNull;
     return tugas.copyWith(mataKuliahName: mk?.nama ?? "Matkul Dihapus");
@@ -182,11 +189,15 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
 });
 
 // 3. Provider "Pintar" untuk Jadwal Lengkap
+// [FIX] UPDATE: Sekarang mendengarkan tempDeletedJadwalProvider untuk mengatasi Data Hantu
 final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
   ref,
 ) {
   final jadwalAsync = ref.watch(allJadwalRawProvider);
   final matkulAsync = ref.watch(allMataKuliahProvider);
+
+  // [BARU] Ambil list ID yang dihapus sementara
+  final ignoredIds = ref.watch(tempDeletedJadwalProvider);
 
   if (jadwalAsync.isLoading || matkulAsync.isLoading) {
     return const AsyncLoading();
@@ -202,8 +213,11 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
   final listJadwal = jadwalAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];
 
+  // [BARU] Filter data hantu SEBELUM di-join
+  final filteredJadwal = listJadwal.where((j) => !ignoredIds.contains(j.id)).toList();
+
   // Client-Side JOIN
-  final joined = listJadwal.map((jadwal) {
+  final joined = filteredJadwal.map((jadwal) {
     final mk = listMatkul.where((m) => m.id == jadwal.mataKuliahId).firstOrNull;
     return jadwal.copyWith(mataKuliahName: mk?.nama ?? "Matkul Dihapus");
   }).toList();
@@ -223,6 +237,3 @@ final attachmentsByTaskProvider =
           .eq('task_id', taskId)
           .map((rows) => rows.map(TaskAttachment.fromMap).toList());
     });
-
-
-

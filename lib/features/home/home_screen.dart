@@ -28,6 +28,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _selectedDay = _focusedDay;
   }
 
+  // [BARU] Navigasi Bulan Mundur
+  void _previousMonth() {
+    setState(() {
+      _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1, _focusedDay.day);
+    });
+  }
+
+  // [BARU] Navigasi Bulan Maju
+  void _nextMonth() {
+    setState(() {
+      _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1, _focusedDay.day);
+    });
+  }
+
   // [PERBAIKAN LOGIKA] Mengambil event (Jadwal & Tugas) untuk tanggal tertentu
   List<dynamic> _getEventsForDay(
     DateTime day,
@@ -281,17 +295,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     data: (listTugas) {
                       return Column(
                         children: [
-                          // Custom Header untuk "View Mode" yang lebih intuitif
+                          // Custom Header dengan Navigasi Bulan
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Bulan & Tahun
+                                // Navigasi Bulan (Kiri)
+                                IconButton(
+                                  icon: const Icon(Icons.chevron_left, color: Colors.grey),
+                                  onPressed: _previousMonth,
+                                  tooltip: "Bulan Sebelumnya",
+                                ),
+
+                                // Nama Bulan & Tahun
                                 Text(
                                   DateFormat('MMMM yyyy', 'id_ID').format(_focusedDay),
                                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                                 ),
+
+                                // Navigasi Bulan (Kanan)
+                                IconButton(
+                                  icon: const Icon(Icons.chevron_right, color: Colors.grey),
+                                  onPressed: _nextMonth,
+                                  tooltip: "Bulan Selanjutnya",
+                                ),
+                                
+                                // Spacer agar tombol View Mode mojok kanan
+                                const SizedBox(width: 8),
+
                                 // Tombol View Mode
                                 Material(
                                   color: Colors.transparent,
@@ -299,7 +331,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     onTap: _cycleCalendarFormat,
                                     borderRadius: BorderRadius.circular(20),
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                       decoration: BoxDecoration(
                                         color: Colors.blueAccent.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(20),
@@ -433,6 +465,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
       },
       onPageChanged: (focusedDay) {
+        // [PENTING] Update state focusedDay saat swipe agar sinkron dengan tombol navigasi
         setState(() {
           _focusedDay = focusedDay;
         });
@@ -634,7 +667,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                      const Icon(
+                        Icons.location_on,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 4),
                       Text(item.ruangan ?? "-", style: const TextStyle(color: Colors.grey, fontSize: 12)),
                       const SizedBox(width: 10),
