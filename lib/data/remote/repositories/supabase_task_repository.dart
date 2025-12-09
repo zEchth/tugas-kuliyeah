@@ -10,7 +10,7 @@ import 'package:tugas_kuliyeah/core/models/jadwal.dart';
 import 'package:tugas_kuliyeah/core/models/mata_kuliah.dart';
 import 'package:tugas_kuliyeah/core/repositories/task_repository.dart';
 import 'dart:io';
-import 'package:uuid/uuid.dart'; // Butuh ini untuk generate ID
+import 'package:uuid/uuid.dart';
 
 class SupabaseTaskRepository implements TaskRepository {
   final SupabaseClient client;
@@ -29,7 +29,7 @@ class SupabaseTaskRepository implements TaskRepository {
     return client
         .from('mata_kuliah')
         .stream(primaryKey: ['id'])
-        .eq('owner_id', uid) // WAJIB
+        .eq('owner_id', uid)
         .map((rows) => rows.map(MataKuliah.fromMap).toList());
   }
 
@@ -39,7 +39,7 @@ class SupabaseTaskRepository implements TaskRepository {
 
     await client.from('mata_kuliah').insert({
       ...mk.toMap(),
-      'owner_id': uid, // override
+      'owner_id': uid,
     });
   }
 
@@ -67,7 +67,6 @@ class SupabaseTaskRepository implements TaskRepository {
           .where((j) => j.ownerId == uid && j.mataKuliahId == matkulId)
           .toList();
       
-      // [FIX] Sort berdasarkan TANGGAL dan JAM MULAI (Waktu nyata)
       list.sort((a, b) {
         final dateComp = a.tanggal.compareTo(b.tanggal);
         if (dateComp != 0) return dateComp;
@@ -86,7 +85,6 @@ class SupabaseTaskRepository implements TaskRepository {
         .eq('owner_id', uid)
         .map((rows) {
            final list = rows.map(Jadwal.fromMap).toList();
-           // [FIX] Sort tanggal global
            list.sort((a, b) {
              final dateComp = a.tanggal.compareTo(b.tanggal);
              if (dateComp != 0) return dateComp;
@@ -96,7 +94,6 @@ class SupabaseTaskRepository implements TaskRepository {
         });
   }
 
-  // [IMPLEMENTASI INTI] Fully Controlled Naming
   @override
   Future<void> generateJadwalSemester({
     required String mataKuliahId,
@@ -105,16 +102,13 @@ class SupabaseTaskRepository implements TaskRepository {
     required TimeOfDay jamMulai,
     required TimeOfDay jamSelesai,
     required String ruangan,
-    
-    // [BARU] Parameter Kontrol Penuh
     required bool useAutoTitle, 
     required String customTitlePrefix, 
     required int startNumber, 
   }) async {
     final uid = client.auth.currentUser!.id;
-    final batchId = const Uuid().v4(); // ID Paket untuk 1 semester ini
+    final batchId = const Uuid().v4();
     
-    // Siapkan list untuk Bulk Insert
     List<Map<String, dynamic>> batchData = [];
 
     // Konversi TimeOfDay ke String HH:mm:ss
@@ -128,7 +122,6 @@ class SupabaseTaskRepository implements TaskRepository {
       // Hitung Nomor Urut Manual berdasarkan Start Number
       final currentNumber = startNumber + i;
 
-      // [LOGIKA PENAMAAN]
       String finalTitle;
       if (useAutoTitle) {
         // Mode Seri: "Pertemuan ke-{currentNumber}"
@@ -144,16 +137,10 @@ class SupabaseTaskRepository implements TaskRepository {
         'mata_kuliah_id': mataKuliahId,
         'batch_id': batchId,
         
-        // Simpan Date String (YYYY-MM-DD)
         'tanggal': tanggalPertemuan.toIso8601String().split('T')[0],
         
-        // [UPDATE] Simpan Judul yang sudah jadi
-        'judul': finalTitle,
-        // Kita simpan currentNumber sebagai legacy/metadata saja, bukan logika urutan
-        'pertemuan_ke': currentNumber, 
-        
+        'judul': finalTitle,        
         'status_pertemuan': 'Terjadwal',
-
         'jam_mulai': startT,
         'jam_selesai': endT,
         'ruangan': ruangan,
@@ -161,11 +148,9 @@ class SupabaseTaskRepository implements TaskRepository {
       });
     }
 
-    // Eksekusi Bulk Insert ke Supabase
     await client.from('jadwal_kuliah').insert(batchData);
   }
 
-  // Helper time formatting
   String _formatTimeOfDay(TimeOfDay t) {
     final h = t.hour.toString().padLeft(2, '0');
     final m = t.minute.toString().padLeft(2, '0');
@@ -188,7 +173,6 @@ class SupabaseTaskRepository implements TaskRepository {
   // ============================================================
   //                            TUGAS
   // ============================================================
-  // (Bagian Tugas tidak berubah)
 
   @override
   Stream<List<Tugas>> watchTugasByMataKuliah(String matkulId) {
@@ -215,7 +199,7 @@ class SupabaseTaskRepository implements TaskRepository {
 
     await client.from('tugas').insert({
       ...tugas.toMap(),
-      'owner_id': uid, // override
+      'owner_id': uid,
     });
   }
 
@@ -362,7 +346,7 @@ class SupabaseTaskRepository implements TaskRepository {
           fileOptions: FileOptions(
             upsert: false,
             metadata: {
-              "owner_id": userId, // WAJIB supaya RLS bisa baca
+              "owner_id": userId,
             },
           ),
         );
