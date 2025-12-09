@@ -34,7 +34,7 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   return AppDatabase();
 });
 
-// Provider untuk Notification Service (di-override di main.dart nanti)
+// Provider untuk Notification Service (di-override di main.dart)
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   throw UnimplementedError();
 });
@@ -42,15 +42,15 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   // final db = ref.watch(databaseProvider);
 
-  // AMBIL SERVICE DARI PROVIDER
-  // final notifService = ref.read(notificationServiceProvider);
+  // [UPDATE] AMBIL SERVICE DARI PROVIDER
+  final notifService = ref.read(notificationServiceProvider);
 
   // MASUKKAN KE REPOSITORY
   // return LocalTaskRepository(db, notifService);
-  return SupabaseTaskRepository(Supabase.instance.client, ref);
+  return SupabaseTaskRepository(Supabase.instance.client, ref, notifService);
 });
 
-// ... existing code ... (sisanya sama)
+// ... existing code ... (sisanya sama, tidak perlu diubah, biar dokumentasi aman)
 final allMataKuliahProvider = StreamProvider<List<core_model.MataKuliah>>((
   ref,
 ) {
@@ -101,36 +101,28 @@ final inboxSharedTasksProvider = StreamProvider<List<ShareTugas>>((ref) {
 class TempDeletedItemsNotifier extends Notifier<Set<String>> {
   @override
   Set<String> build() {
-    // Initial state adalah Set kosong
     return const {};
   }
 
-  // Method untuk menambah ID ke dalam ignore list
   void add(String id) {
     state = {...state, id};
   }
 
-  // Method untuk menghapus ID dari ignore list (rollback)
   void remove(String id) {
     state = {...state}..remove(id);
   }
 }
 
-// Definisikan Provider menggunakan NotifierProvider
-
-// 1. Untuk Jadwal
 final tempDeletedJadwalProvider =
     NotifierProvider<TempDeletedItemsNotifier, Set<String>>(
       TempDeletedItemsNotifier.new,
     );
 
-// 2. Untuk Tugas
 final tempDeletedTugasProvider =
     NotifierProvider<TempDeletedItemsNotifier, Set<String>>(
       TempDeletedItemsNotifier.new,
     );
 
-// 3. Untuk Mata Kuliah (BARU)
 final tempDeletedMataKuliahProvider =
     NotifierProvider<TempDeletedItemsNotifier, Set<String>>(
       TempDeletedItemsNotifier.new,
@@ -151,16 +143,13 @@ final allJadwalRawProvider = StreamProvider<List<core_model.Jadwal>>((ref) {
 
 // 2. Provider "Pintar" yang menggabungkan (JOIN) data Matkul ke Tugas
 // agar kita bisa menampilkan "Nama Matkul" di Home Screen.
-// [FIX] UPDATE: Sekarang mendengarkan tempDeletedTugasProvider untuk mengatasi Data Hantu
 final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
   ref,
 ) {
   final tugasAsync = ref.watch(allTugasRawProvider);
   final matkulAsync = ref.watch(allMataKuliahProvider);
   
-  // [BARU] Ambil list ID yang dihapus sementara
   final ignoredIds = ref.watch(tempDeletedTugasProvider);
-  // [SOLUSI HANTU] Ambil list ID Mata Kuliah yang dihapus sementara
   final ignoredMatkulIds = ref.watch(tempDeletedMataKuliahProvider);
 
   if (tugasAsync.isLoading || matkulAsync.isLoading) {
@@ -177,24 +166,15 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
   final listTugas = tugasAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];
 
-  // [BARU] Filter data hantu SEBELUM di-join
   final filteredTugas = listTugas.where((t) {
-    // 1. Cek apakah tugas itu sendiri dihapus
     if (ignoredIds.contains(t.id)) return false;
-
-    // 2. [SOLUSI HANTU] Cek apakah induk matkulnya sedang dihapus sementara
     if (ignoredMatkulIds.contains(t.mataKuliahId)) return false;
-
-    // 3. [SOLUSI HANTU] Cek apakah induk matkulnya benar-benar ada (hapus orphan data)
     final parentExists = listMatkul.any((m) => m.id == t.mataKuliahId);
     if (!parentExists) return false;
-
     return true;
   }).toList();
 
-  // Client-Side JOIN
   final joined = filteredTugas.map((tugas) {
-    // Cari nama matkul berdasarkan ID (Sekarang pasti ketemu karena sudah difilter di atas)
     final mk = listMatkul.where((m) => m.id == tugas.mataKuliahId).firstOrNull;
     return tugas.copyWith(mataKuliahName: mk?.nama ?? "Tanpa Nama");
   }).toList();
@@ -202,17 +182,13 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
   return AsyncData(joined);
 });
 
-// 3. Provider "Pintar" untuk Jadwal Lengkap
-// [FIX] UPDATE: Sekarang mendengarkan tempDeletedJadwalProvider untuk mengatasi Data Hantu
 final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
   ref,
 ) {
   final jadwalAsync = ref.watch(allJadwalRawProvider);
   final matkulAsync = ref.watch(allMataKuliahProvider);
 
-  // [BARU] Ambil list ID yang dihapus sementara
   final ignoredIds = ref.watch(tempDeletedJadwalProvider);
-  // [SOLUSI HANTU] Ambil list ID Mata Kuliah yang dihapus sementara
   final ignoredMatkulIds = ref.watch(tempDeletedMataKuliahProvider);
 
   if (jadwalAsync.isLoading || matkulAsync.isLoading) {
@@ -229,22 +205,14 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
   final listJadwal = jadwalAsync.value ?? [];
   final listMatkul = matkulAsync.value ?? [];
 
-  // [BARU] Filter data hantu SEBELUM di-join
   final filteredJadwal = listJadwal.where((j) {
-    // 1. Cek apakah jadwal itu sendiri dihapus
     if (ignoredIds.contains(j.id)) return false;
-
-    // 2. [SOLUSI HANTU] Cek apakah induk matkulnya sedang dihapus sementara
     if (ignoredMatkulIds.contains(j.mataKuliahId)) return false;
-
-    // 3. [SOLUSI HANTU] Cek apakah induk matkulnya benar-benar ada (hapus orphan data)
     final parentExists = listMatkul.any((m) => m.id == j.mataKuliahId);
     if (!parentExists) return false;
-
     return true;
   }).toList();
 
-  // Client-Side JOIN
   final joined = filteredJadwal.map((jadwal) {
     final mk = listMatkul.where((m) => m.id == jadwal.mataKuliahId).firstOrNull;
     return jadwal.copyWith(mataKuliahName: mk?.nama ?? "Tanpa Nama");
@@ -253,7 +221,6 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
   return AsyncData(joined);
 });
 
-// Atachmen
 final attachmentsByTaskProvider =
     StreamProvider.family<List<TaskAttachment>, String>((ref, taskId) {
       ref.watch(globalRefreshProvider); 

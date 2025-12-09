@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tugas_kuliyeah/features/home/home_screen.dart';
 import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_list_screen.dart';
 import 'package:tugas_kuliyeah/features/profile/profile_screen.dart';
+// [UPDATE] Import Provider & Repo Type
+import 'package:tugas_kuliyeah/core/providers.dart';
+import 'package:tugas_kuliyeah/data/remote/repositories/supabase_task_repository.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
@@ -17,7 +20,6 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   int _selectedIndex = 0;
 
-  // Daftar halaman untuk navigasi
   final List<Widget> _screens = [
     const HomeScreen(),
     const MataKuliahListScreen(),
@@ -27,17 +29,30 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
-    // Panggil fungsi pengecekan platform/notifikasi di sini (Level Aplikasi)
-    // Dipindahkan dari MataKuliahListScreen agar hanya dipanggil sekali di awal.
     _checkPlatformAndPermission();
+    
+    // [UPDATE] Trigger Sync Notification saat App Dibuka
+    // Kita jalankan setelah frame pertama agar tidak blocking UI awal
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncNotifications();
+    });
   }
 
-  // Fungsi ini memisahkan logika menjadi 2 KASUS (Browser vs Emulator)
+  Future<void> _syncNotifications() async {
+    if (kIsWeb) return; // Web tidak butuh sync local notif
+    
+    // Kita cek apakah repository yang aktif adalah SupabaseTaskRepository
+    // Karena kita butuh method khusus 'resyncLocalNotifications' yang ada disana
+    final repo = ref.read(taskRepositoryProvider);
+    
+    if (repo is SupabaseTaskRepository) {
+      // Jalankan di background (async)
+      repo.resyncLocalNotifications();
+    }
+  }
+
   Future<void> _checkPlatformAndPermission() async {
     if (kIsWeb) {
-      // ==========================================
-      // CASE 1: BROWSER (WEB)
-      // ==========================================
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -74,9 +89,6 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         }
       });
     } else {
-      // ==========================================
-      // CASE 2: EMULATOR / HP (ANDROID/iOS)
-      // ==========================================
       final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
           FlutterLocalNotificationsPlugin();
 
@@ -120,7 +132,6 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blueAccent,
         onTap: _onItemTapped,
-        // Style tambahan biar rapi di dark mode
         type: BottomNavigationBarType.fixed,
         backgroundColor: const Color(0xFF1A1A1A),
         unselectedItemColor: Colors.grey,

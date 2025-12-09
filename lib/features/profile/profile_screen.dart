@@ -109,7 +109,6 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 20),
 
           // === TOMBOL LOGOUT ===
-          // Logika logout dipindahkan dari MataKuliahListScreen ke sini
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent.withOpacity(0.1),
@@ -160,7 +159,11 @@ class ProfileScreen extends ConsumerWidget {
                         onPressed: () async {
                           Navigator.pop(context); // Tutup Dialog
                           try {
-                            // Reset semua state saat logout
+                            // [UPDATE] Batalkan semua notifikasi lokal sebelum logout
+                            // Agar alarm tidak bunyi di akun orang lain atau saat logout
+                            await ref.read(notificationServiceProvider).cancelAllNotifications();
+
+                            // Reset semua state
                             ref.invalidate(allMataKuliahProvider);
                             ref.invalidate(jadwalByMatkulProvider);
                             ref.invalidate(tugasByMatkulProvider);
