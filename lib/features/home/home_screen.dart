@@ -305,23 +305,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 IconButton(
                                   icon: const Icon(Icons.chevron_left, color: Colors.grey),
                                   onPressed: _previousMonth,
+                                  tooltip: "Bulan Sebelumnya",
                                 ),
 
-                                // [PERBAIKAN] Bungkus Text dengan Expanded agar dia mengisi ruang kosong tapi bisa mengecil
-                                Expanded( 
-                                  child: Center( // Tambah center agar teks tetap di tengah
-                                    child: Text(
-                                      DateFormat('MMMM yyyy', 'id_ID').format(_focusedDay),
-                                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600), // Kecilkan font dikit (20 -> 18)
-                                      overflow: TextOverflow.ellipsis, // Tambah ini biar kalau kepanjangan jadi ...
-                                    ),
-                                  ),
+                                // Nama Bulan & Tahun
+                                Text(
+                                  DateFormat('MMMM yyyy', 'id_ID').format(_focusedDay),
+                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                                 ),
 
                                 // Navigasi Bulan (Kanan)
                                 IconButton(
                                   icon: const Icon(Icons.chevron_right, color: Colors.grey),
                                   onPressed: _nextMonth,
+                                  tooltip: "Bulan Selanjutnya",
                                 ),
                                 
                                 // Spacer agar tombol View Mode mojok kanan
