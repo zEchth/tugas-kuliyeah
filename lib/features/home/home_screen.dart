@@ -694,7 +694,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildTugasCard(core_model.Tugas item) {
-    final isUrgent = item.dueAt.difference(DateTime.now()).inDays < 2;
+    // [LOGIKA FIX] Cek selisih hari DAN status tugas
+    final isUrgent = item.dueAt.difference(DateTime.now()).inDays < 2 && item.status != 'Selesai';
+    
     return GestureDetector(
       onTap: () => _showTugasDetail(item),
       child: Container(
