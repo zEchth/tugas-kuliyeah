@@ -160,6 +160,8 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
   
   // [BARU] Ambil list ID yang dihapus sementara
   final ignoredIds = ref.watch(tempDeletedTugasProvider);
+  // [SOLUSI HANTU] Ambil list ID Mata Kuliah yang dihapus sementara
+  final ignoredMatkulIds = ref.watch(tempDeletedMataKuliahProvider);
 
   if (tugasAsync.isLoading || matkulAsync.isLoading) {
     return const AsyncLoading();
@@ -176,13 +178,25 @@ final allTugasLengkapProvider = Provider<AsyncValue<List<core_model.Tugas>>>((
   final listMatkul = matkulAsync.value ?? [];
 
   // [BARU] Filter data hantu SEBELUM di-join
-  final filteredTugas = listTugas.where((t) => !ignoredIds.contains(t.id)).toList();
+  final filteredTugas = listTugas.where((t) {
+    // 1. Cek apakah tugas itu sendiri dihapus
+    if (ignoredIds.contains(t.id)) return false;
+
+    // 2. [SOLUSI HANTU] Cek apakah induk matkulnya sedang dihapus sementara
+    if (ignoredMatkulIds.contains(t.mataKuliahId)) return false;
+
+    // 3. [SOLUSI HANTU] Cek apakah induk matkulnya benar-benar ada (hapus orphan data)
+    final parentExists = listMatkul.any((m) => m.id == t.mataKuliahId);
+    if (!parentExists) return false;
+
+    return true;
+  }).toList();
 
   // Client-Side JOIN
   final joined = filteredTugas.map((tugas) {
-    // Cari nama matkul berdasarkan ID
+    // Cari nama matkul berdasarkan ID (Sekarang pasti ketemu karena sudah difilter di atas)
     final mk = listMatkul.where((m) => m.id == tugas.mataKuliahId).firstOrNull;
-    return tugas.copyWith(mataKuliahName: mk?.nama ?? "Matkul Dihapus");
+    return tugas.copyWith(mataKuliahName: mk?.nama ?? "Tanpa Nama");
   }).toList();
 
   return AsyncData(joined);
@@ -198,6 +212,8 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
 
   // [BARU] Ambil list ID yang dihapus sementara
   final ignoredIds = ref.watch(tempDeletedJadwalProvider);
+  // [SOLUSI HANTU] Ambil list ID Mata Kuliah yang dihapus sementara
+  final ignoredMatkulIds = ref.watch(tempDeletedMataKuliahProvider);
 
   if (jadwalAsync.isLoading || matkulAsync.isLoading) {
     return const AsyncLoading();
@@ -214,12 +230,24 @@ final allJadwalLengkapProvider = Provider<AsyncValue<List<core_model.Jadwal>>>((
   final listMatkul = matkulAsync.value ?? [];
 
   // [BARU] Filter data hantu SEBELUM di-join
-  final filteredJadwal = listJadwal.where((j) => !ignoredIds.contains(j.id)).toList();
+  final filteredJadwal = listJadwal.where((j) {
+    // 1. Cek apakah jadwal itu sendiri dihapus
+    if (ignoredIds.contains(j.id)) return false;
+
+    // 2. [SOLUSI HANTU] Cek apakah induk matkulnya sedang dihapus sementara
+    if (ignoredMatkulIds.contains(j.mataKuliahId)) return false;
+
+    // 3. [SOLUSI HANTU] Cek apakah induk matkulnya benar-benar ada (hapus orphan data)
+    final parentExists = listMatkul.any((m) => m.id == j.mataKuliahId);
+    if (!parentExists) return false;
+
+    return true;
+  }).toList();
 
   // Client-Side JOIN
   final joined = filteredJadwal.map((jadwal) {
     final mk = listMatkul.where((m) => m.id == jadwal.mataKuliahId).firstOrNull;
-    return jadwal.copyWith(mataKuliahName: mk?.nama ?? "Matkul Dihapus");
+    return jadwal.copyWith(mataKuliahName: mk?.nama ?? "Tanpa Nama");
   }).toList();
 
   return AsyncData(joined);
