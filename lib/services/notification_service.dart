@@ -12,15 +12,57 @@ class NotificationService {
     if (kIsWeb) return;
 
     tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Asia/Makassar'));
+    
+
+    debugPrint("TZ ACTIVE: ${tz.local.name}");
+    debugPrint("NOW TZ: ${tz.TZDateTime.now(tz.local)}");
 
     // Icon notifikasi untuk Android (Pastikan file g-logo.png atau ic_launcher ada di res/drawable)
     // Biasanya menggunakan @mipmap/ic_launcher default flutter
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const ios = DarwinInitializationSettings();
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    ); // '@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings();
 
-    const settings = InitializationSettings(android: android, iOS: ios);
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: androidSettings, iOS: iosSettings);
 
-    await flutterLocalNotificationsPlugin.initialize(settings);
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (details) {
+        debugPrint("NOTIF CLICKED: ${details.payload}");
+      },
+    );
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
+
+    // CREATE CHANNELS
+    const tugasChannel = AndroidNotificationChannel(
+      'channel_tugas_id',
+      'Reminder Tugas',
+      description: 'Notifikasi tenggat tugas',
+      importance: Importance.max,
+    );
+
+    const jadwalChannel = AndroidNotificationChannel(
+      'channel_jadwal_id',
+      'Jadwal Kuliah',
+      description: 'Notifikasi jadwal kuliah',
+      importance: Importance.max,
+    );
+
+    final androidImpl = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    await androidImpl?.createNotificationChannel(tugasChannel);
+    await androidImpl?.createNotificationChannel(jadwalChannel);
 
     // FIX: request exact alarm permission (Android 13+)
     if (Platform.isAndroid) {
@@ -63,9 +105,11 @@ class NotificationService {
     required DateTime scheduledDate,
   }) async {
     if (kIsWeb) return;
-    
+
     // Jangan jadwalkan jika waktu sudah lewat
     if (scheduledDate.isBefore(DateTime.now())) return;
+
+    await flutterLocalNotificationsPlugin.cancel(id);
 
     final canExact = await _canUseExactAlarm();
 
@@ -105,59 +149,59 @@ class NotificationService {
   }
 
   // === REMINDER JADWAL KULIAH ===
-  Future<void> scheduleJadwalKuliah({
-    required int id,
-    required String title,
-    required String body,
-    required int dayOfWeek, // 1 = Senin, 7 = Minggu
-    required int hour,
-    required int minute,
-  }) async {
-    if (kIsWeb) return;
-    final canExact = await _canUseExactAlarm();
+  // Future<void> scheduleJadwalKuliah({
+  //   required int id,
+  //   required String title,
+  //   required String body,
+  //   required int dayOfWeek, // 1 = Senin, 7 = Minggu
+  //   required int hour,
+  //   required int minute,
+  // }) async {
+  //   if (kIsWeb) return;
+  //   final canExact = await _canUseExactAlarm();
 
-    try {
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        _nextInstanceOfDay(dayOfWeek, hour, minute),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'channel_jadwal_id',
-            'Jadwal Kuliah',
-            channelDescription: 'Notifikasi jadwal kuliah mingguan',
-            importance: Importance.max,
-            priority: Priority.high,
-          ),
-        ),
-        androidScheduleMode: canExact
-            ? AndroidScheduleMode.exactAllowWhileIdle
-            : AndroidScheduleMode.inexact,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      );
-    } catch (e) {
-      debugPrint("Error scheduling jadwal: $e");
-    }
-  }
+  //   try {
+  //     await flutterLocalNotificationsPlugin.zonedSchedule(
+  //       id,
+  //       title,
+  //       body,
+  //       _nextInstanceOfDay(dayOfWeek, hour, minute),
+  //       const NotificationDetails(
+  //         android: AndroidNotificationDetails(
+  //           'channel_jadwal_id',
+  //           'Jadwal Kuliah',
+  //           channelDescription: 'Notifikasi jadwal kuliah mingguan',
+  //           importance: Importance.max,
+  //           priority: Priority.high,
+  //         ),
+  //       ),
+  //       androidScheduleMode: canExact
+  //           ? AndroidScheduleMode.exactAllowWhileIdle
+  //           : AndroidScheduleMode.inexact,
+  //       uiLocalNotificationDateInterpretation:
+  //           UILocalNotificationDateInterpretation.absoluteTime,
+  //       matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+  //     );
+  //   } catch (e) {
+  //     debugPrint("Error scheduling jadwal: $e");
+  //   }
+  // }
 
-  tz.TZDateTime _nextInstanceOfDay(int dow, int h, int m) {
-    final now = tz.TZDateTime.now(tz.local);
-    var result = tz.TZDateTime(tz.local, now.year, now.month, now.day, h, m);
+  // tz.TZDateTime _nextInstanceOfDay(int dow, int h, int m) {
+  //   final now = tz.TZDateTime.now(tz.local);
+  //   var result = tz.TZDateTime(tz.local, now.year, now.month, now.day, h, m);
 
-    // Loop sampai ketemu hari yang sesuai
-    while (result.weekday != dow) {
-      result = result.add(const Duration(days: 1));
-    }
+  //   // Loop sampai ketemu hari yang sesuai
+  //   while (result.weekday != dow) {
+  //     result = result.add(const Duration(days: 1));
+  //   }
 
-    // Jika waktu sudah lewat hari ini, tambahkan 1 minggu
-    if (result.isBefore(now)) {
-      result = result.add(const Duration(days: 7));
-    }
-    return result;
-  }
+  //   // Jika waktu sudah lewat hari ini, tambahkan 1 minggu
+  //   if (result.isBefore(now)) {
+  //     result = result.add(const Duration(days: 7));
+  //   }
+  //   return result;
+  // }
 
   Future<void> cancelNotification(int id) async {
     if (kIsWeb) return;

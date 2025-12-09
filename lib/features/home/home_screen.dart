@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -312,6 +313,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+
+              // Tes notif jir
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final notif = ref.read(notificationServiceProvider);
+
+                    await notif.flutterLocalNotificationsPlugin.show(
+                      999,
+                      "TES NOTIF",
+                      "Kalau ini tidak muncul, sistem / permission kamu yang rusak.",
+                      const NotificationDetails(
+                        android: AndroidNotificationDetails(
+                          'channel_tugas_id',
+                          'Reminder Tugas',
+                          importance: Importance.max,
+                          priority: Priority.high,
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text("TEST NOTIF"),
                 ),
               ),
 

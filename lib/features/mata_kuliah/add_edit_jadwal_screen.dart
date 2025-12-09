@@ -6,7 +6,7 @@ import 'package:intl/intl.dart'; // [WAJIB] Untuk format tanggal
 import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
 import 'package:tugas_kuliyeah/core/providers.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
+// import 'package:uuid/uuid.dart';
 // import 'package:intl/intl.dart'; // Untuk format TimeOfDay
 
 class AddEditJadwalScreen extends ConsumerStatefulWidget {

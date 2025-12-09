@@ -33,14 +33,22 @@ class SupabaseTaskRepository implements TaskRepository {
   // --- Helper: Konversi Hari String ke Int ---
   int _getDayInt(String hari) {
     switch (hari.toLowerCase()) {
-      case 'senin': return 1;
-      case 'selasa': return 2;
-      case 'rabu': return 3;
-      case 'kamis': return 4;
-      case 'jumat': return 5;
-      case 'sabtu': return 6;
-      case 'minggu': return 7;
-      default: return 1;
+      case 'senin':
+        return 1;
+      case 'selasa':
+        return 2;
+      case 'rabu':
+        return 3;
+      case 'kamis':
+        return 4;
+      case 'jumat':
+        return 5;
+      case 'sabtu':
+        return 6;
+      case 'minggu':
+        return 7;
+      default:
+        return 1;
     }
   }
 
@@ -67,8 +75,10 @@ class SupabaseTaskRepository implements TaskRepository {
           .eq('owner_id', uid)
           .neq('status', 'Selesai') // Abaikan yang selesai
           .gt('due_at', now); // Hanya yang akan datang
-      
-      final listTugas = (tugasData as List).map((x) => Tugas.fromMap(x)).toList();
+
+      final listTugas = (tugasData as List)
+          .map((x) => Tugas.fromMap(x))
+          .toList();
 
       // 3. Jadwalkan Ulang Tugas
       for (final t in listTugas) {
@@ -88,43 +98,48 @@ class SupabaseTaskRepository implements TaskRepository {
           .eq('owner_id', uid)
           .eq('status_pertemuan', 'Terjadwal'); // Hanya yang aktif
 
-       final listJadwal = (jadwalData as List).map((x) => Jadwal.fromMap(x)).toList();
+      final listJadwal = (jadwalData as List)
+          .map((x) => Jadwal.fromMap(x))
+          .toList();
 
       // 5. Jadwalkan Ulang Jadwal
       // PERHATIAN: Ini akan memasang alarm mingguan untuk setiap row jadwal.
       // Jika jadwal digenerate 16 pertemuan, alarmnya akan redundant di hari yang sama.
       // Optimasi: Kita ambil jadwal unik per hari per matkul saja.
-      // (Tapi untuk simplifikasi kode saat ini, kita pasang saja jadwal spesifik 
+      // (Tapi untuk simplifikasi kode saat ini, kita pasang saja jadwal spesifik
       //  menggunakan scheduleTugasReminder agar akurat per tanggal)
-      
-      for (final j in listJadwal) {
-         // Cek apakah jadwal ini di masa depan
-         final jadwalDateTime = DateTime(
-           j.tanggal.year, j.tanggal.month, j.tanggal.day,
-           j.jamMulai.hour, j.jamMulai.minute
-         );
 
-         if (jadwalDateTime.isAfter(DateTime.now())) {
-            final matkulName = j.mataKuliahName ?? "Kuliah";
-            
-            // Kita gunakan one-time reminder agar akurat sesuai tanggal (bukan weekly recurring)
-            // karena tabel jadwal_kuliah menyimpan tanggal spesifik.
-            await notificationService.scheduleTugasReminder(
-              id: _generateId(j.id),
-              title: "Kelas: $matkulName",
-              body: "Ruang: ${j.ruangan} | ${j.judul}",
-              scheduledDate: jadwalDateTime,
-            );
-         }
+      for (final j in listJadwal) {
+        // Cek apakah jadwal ini di masa depan
+        final jadwalDateTime = DateTime(
+          j.tanggal.year,
+          j.tanggal.month,
+          j.tanggal.day,
+          j.jamMulai.hour,
+          j.jamMulai.minute,
+        );
+
+        if (jadwalDateTime.isAfter(DateTime.now())) {
+          final matkulName = j.mataKuliahName ?? "Kuliah";
+
+          // Kita gunakan one-time reminder agar akurat sesuai tanggal (bukan weekly recurring)
+          // karena tabel jadwal_kuliah menyimpan tanggal spesifik.
+          await notificationService.scheduleTugasReminder(
+            id: _generateId(j.id),
+            title: "Kelas: $matkulName",
+            body: "Ruang: ${j.ruangan} | ${j.judul}",
+            scheduledDate: jadwalDateTime,
+          );
+        }
       }
 
-      debugPrint("[SYNC] Selesai. ${listTugas.length} Tugas & ${listJadwal.length} Jadwal dijadwalkan.");
-
+      debugPrint(
+        "[SYNC] Selesai. ${listTugas.length} Tugas & ${listJadwal.length} Jadwal dijadwalkan.",
+      );
     } catch (e) {
       debugPrint("[SYNC ERROR] Gagal sinkronisasi notifikasi: $e");
     }
   }
-
 
   // ============================================================
   //                        MATA KULIAH
@@ -145,10 +160,7 @@ class SupabaseTaskRepository implements TaskRepository {
   Future<void> insertMataKuliah(MataKuliah mk) async {
     final uid = Supabase.instance.client.auth.currentUser!.id;
 
-    await client.from('mata_kuliah').insert({
-      ...mk.toMap(),
-      'owner_id': uid,
-    });
+    await client.from('mata_kuliah').insert({...mk.toMap(), 'owner_id': uid});
   }
 
   @override
@@ -173,13 +185,12 @@ class SupabaseTaskRepository implements TaskRepository {
   @override
   Stream<List<Jadwal>> watchJadwalByMataKuliah(String matkulId) {
     final uid = Supabase.instance.client.auth.currentUser!.id;
-    return client.from('jadwal_kuliah').stream(primaryKey: ['id'])
-    .map((rows) {
+    return client.from('jadwal_kuliah').stream(primaryKey: ['id']).map((rows) {
       final list = rows
           .map(Jadwal.fromMap)
           .where((j) => j.ownerId == uid && j.mataKuliahId == matkulId)
           .toList();
-      
+
       list.sort((a, b) {
         final dateComp = a.tanggal.compareTo(b.tanggal);
         if (dateComp != 0) return dateComp;
@@ -197,13 +208,13 @@ class SupabaseTaskRepository implements TaskRepository {
         .stream(primaryKey: ['id'])
         .eq('owner_id', uid)
         .map((rows) {
-           final list = rows.map(Jadwal.fromMap).toList();
-           list.sort((a, b) {
-             final dateComp = a.tanggal.compareTo(b.tanggal);
-             if (dateComp != 0) return dateComp;
-             return a.jamMulai.compareTo(b.jamMulai);
-           });
-           return list;
+          final list = rows.map(Jadwal.fromMap).toList();
+          list.sort((a, b) {
+            final dateComp = a.tanggal.compareTo(b.tanggal);
+            if (dateComp != 0) return dateComp;
+            return a.jamMulai.compareTo(b.jamMulai);
+          });
+          return list;
         });
   }
 
@@ -215,17 +226,31 @@ class SupabaseTaskRepository implements TaskRepository {
     required TimeOfDay jamMulai,
     required TimeOfDay jamSelesai,
     required String ruangan,
-    required bool useAutoTitle, 
-    required String customTitlePrefix, 
-    required int startNumber, 
+    required bool useAutoTitle,
+    required String customTitlePrefix,
+    required int startNumber,
   }) async {
     final uid = client.auth.currentUser!.id;
     final batchId = const Uuid().v4();
-    
+
+    // BERSIHKAN NOTIF JADWAL LAMA MATKUL INI
+    final oldJadwal = await client
+        .from('jadwal_kuliah')
+        .select('id')
+        .eq('mata_kuliah_id', mataKuliahId);
+
+    for (final j in oldJadwal) {
+      await notificationService.cancelNotification(_generateId(j['id']));
+    }
+
     List<Map<String, dynamic>> batchData = [];
-    
+
     // [UPDATE] Ambil nama matkul untuk notifikasi
-    final matkulRes = await client.from('mata_kuliah').select('nama_matkul').eq('id', mataKuliahId).single();
+    final matkulRes = await client
+        .from('mata_kuliah')
+        .select('nama_matkul')
+        .eq('id', mataKuliahId)
+        .single();
     final matkulName = matkulRes['nama_matkul'];
 
     final startT = _formatTimeOfDay(jamMulai);
@@ -244,7 +269,7 @@ class SupabaseTaskRepository implements TaskRepository {
         // Mode Kustom Murni: "Responsi" (Semua sama)
         finalTitle = customTitlePrefix;
       }
-      
+
       final newId = const Uuid().v4();
 
       batchData.add({
@@ -253,7 +278,7 @@ class SupabaseTaskRepository implements TaskRepository {
         'mata_kuliah_id': mataKuliahId,
         'batch_id': batchId,
         'tanggal': tanggalPertemuan.toIso8601String().split('T')[0],
-        'judul': finalTitle,        
+        'judul': finalTitle,
         'status_pertemuan': 'Terjadwal',
         'jam_mulai': startT,
         'jam_selesai': endT,
@@ -263,22 +288,26 @@ class SupabaseTaskRepository implements TaskRepository {
 
       // [UPDATE] Jadwalkan Notifikasi Lokal Langsung
       final startDateTime = DateTime(
-        tanggalPertemuan.year, tanggalPertemuan.month, tanggalPertemuan.day,
-        jamMulai.hour, jamMulai.minute
+        tanggalPertemuan.year,
+        tanggalPertemuan.month,
+        tanggalPertemuan.day,
+        jamMulai.hour,
+        jamMulai.minute,
       );
 
       // Hanya jadwalkan jika di masa depan
       if (startDateTime.isAfter(DateTime.now())) {
-         await notificationService.scheduleTugasReminder(
-            id: _generateId(newId),
-            title: "Kelas: $matkulName", 
-            body: "$finalTitle di $ruangan", 
-            scheduledDate: startDateTime,
-         );
+        await notificationService.scheduleTugasReminder(
+          id: _generateId(newId),
+          title: "Kelas: $matkulName",
+          body: "$finalTitle di $ruangan",
+          scheduledDate: startDateTime,
+        );
       }
     }
 
     await client.from('jadwal_kuliah').insert(batchData);
+    await resyncLocalNotifications();
   }
 
   String _formatTimeOfDay(TimeOfDay t) {
@@ -293,11 +322,14 @@ class SupabaseTaskRepository implements TaskRepository {
         .from('jadwal_kuliah')
         .update(jadwal.toMap())
         .eq('id', jadwal.id);
-    
+
     // [UPDATE] Update Notifikasi
     final startDateTime = DateTime(
-      jadwal.tanggal.year, jadwal.tanggal.month, jadwal.tanggal.day,
-      jadwal.jamMulai.hour, jadwal.jamMulai.minute
+      jadwal.tanggal.year,
+      jadwal.tanggal.month,
+      jadwal.tanggal.day,
+      jadwal.jamMulai.hour,
+      jadwal.jamMulai.minute,
     );
 
     // Ambil nama matkul (karena di object jadwal mungkin null jika belum di-join)
@@ -305,18 +337,22 @@ class SupabaseTaskRepository implements TaskRepository {
     if (jadwal.mataKuliahName != null) {
       matkulName = jadwal.mataKuliahName!;
     } else {
-       final res = await client.from('mata_kuliah').select('nama_matkul').eq('id', jadwal.mataKuliahId).single();
-       matkulName = res['nama_matkul'];
+      final res = await client
+          .from('mata_kuliah')
+          .select('nama_matkul')
+          .eq('id', jadwal.mataKuliahId)
+          .single();
+      matkulName = res['nama_matkul'];
     }
 
     await notificationService.cancelNotification(_generateId(jadwal.id));
-    
+
     if (startDateTime.isAfter(DateTime.now())) {
       await notificationService.scheduleTugasReminder(
-        id: _generateId(jadwal.id), 
-        title: "Kelas: $matkulName (Updated)", 
-        body: "${jadwal.judul} di ${jadwal.ruangan}", 
-        scheduledDate: startDateTime
+        id: _generateId(jadwal.id),
+        title: "Kelas: $matkulName (Updated)",
+        body: "${jadwal.judul} di ${jadwal.ruangan}",
+        scheduledDate: startDateTime,
       );
     }
   }
@@ -355,21 +391,22 @@ class SupabaseTaskRepository implements TaskRepository {
   Future<void> insertTugas(Tugas tugas) async {
     final uid = Supabase.instance.client.auth.currentUser!.id;
 
-    await client.from('tugas').insert({
-      ...tugas.toMap(),
-      'owner_id': uid,
-    });
+    await client.from('tugas').insert({...tugas.toMap(), 'owner_id': uid});
 
     // [UPDATE] Jadwalkan Notifikasi
     // Perlu ambil nama matkul dulu
-    final res = await client.from('mata_kuliah').select('nama_matkul').eq('id', tugas.mataKuliahId).single();
+    final res = await client
+        .from('mata_kuliah')
+        .select('nama_matkul')
+        .eq('id', tugas.mataKuliahId)
+        .single();
     final matkulName = res['nama_matkul'];
 
     await notificationService.scheduleTugasReminder(
-      id: _generateId(tugas.id), 
-      title: "${tugas.type}: $matkulName", 
-      body: "${tugas.title} (Deadline!)", 
-      scheduledDate: tugas.dueAt
+      id: _generateId(tugas.id),
+      title: "${tugas.type}: $matkulName",
+      body: "${tugas.title} (Deadline!)",
+      scheduledDate: tugas.dueAt,
     );
   }
 
@@ -386,8 +423,12 @@ class SupabaseTaskRepository implements TaskRepository {
       if (tugas.mataKuliahName != null) {
         matkulName = tugas.mataKuliahName!;
       } else {
-         final res = await client.from('mata_kuliah').select('nama_matkul').eq('id', tugas.mataKuliahId).single();
-         matkulName = res['nama_matkul'];
+        final res = await client
+            .from('mata_kuliah')
+            .select('nama_matkul')
+            .eq('id', tugas.mataKuliahId)
+            .single();
+        matkulName = res['nama_matkul'];
       }
 
       await notificationService.scheduleTugasReminder(
@@ -510,15 +551,15 @@ class SupabaseTaskRepository implements TaskRepository {
     // Karena kita pakai 'StreamProvider' untuk list tugas,
     // UI akan update otomatis.
     // [NOTE] Untuk notifikasi: Tugas baru ini belum punya alarm lokal.
-    // Solusi: Resync saat refresh / buka app, atau kita bisa trigger manual disini 
+    // Solusi: Resync saat refresh / buka app, atau kita bisa trigger manual disini
     // tapi agak tricky karena kita tidak tahu ID tugas baru yang dihasilkan RPC.
     // Cara terbaik: Panggil resyncLocalNotifications() setelah sukses accept.
-    
+
     final resp = await client.rpc(
       'accept_shared_task',
       params: {'share_id': shareId, 'target_mata_kuliah': receiverMatkulId},
     );
-    
+
     // Trigger Resync agar tugas baru terpasang alarmnya
     await resyncLocalNotifications();
 
@@ -546,14 +587,14 @@ class SupabaseTaskRepository implements TaskRepository {
     final storagePath = 'attachment_folder/$taskId/$uniqueName';
     final userId = client.auth.currentUser!.id;
 
-    await client.storage.from('attachments').uploadBinary(
+    await client.storage
+        .from('attachments')
+        .uploadBinary(
           storagePath,
           bytes,
           fileOptions: FileOptions(
             upsert: false,
-            metadata: {
-              "owner_id": userId,
-            },
+            metadata: {"owner_id": userId},
           ),
         );
 
@@ -561,7 +602,7 @@ class SupabaseTaskRepository implements TaskRepository {
 
     await client.from('task_attachments').insert({
       'task_id': taskId,
-      'owner_id': userId, 
+      'owner_id': userId,
       'path': storagePath,
       'url': url,
       'size': bytes.length,
@@ -609,7 +650,9 @@ class SupabaseTaskRepository implements TaskRepository {
     final storagePath = 'attachment_folder/$taskId/$uniqueName';
     final userId = client.auth.currentUser!.id;
 
-    await client.storage.from('attachments').uploadBinary(
+    await client.storage
+        .from('attachments')
+        .uploadBinary(
           storagePath,
           bytes,
           fileOptions: FileOptions(
@@ -632,13 +675,19 @@ class SupabaseTaskRepository implements TaskRepository {
 
   String _extensionToMime(String ext) {
     switch (ext.toLowerCase()) {
-      case 'pdf': return 'application/pdf';
+      case 'pdf':
+        return 'application/pdf';
       case 'jpg':
-      case 'jpeg': return 'image/jpeg';
-      case 'png': return 'image/png';
-      case 'doc': return 'application/msword';
-      case 'docx': return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      default: return 'application/octet-stream';
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      default:
+        return 'application/octet-stream';
     }
   }
 }
