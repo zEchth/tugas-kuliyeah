@@ -30,7 +30,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   void initState() {
     super.initState();
     _checkPlatformAndPermission();
-    
+
     // [UPDATE] Trigger Sync Notification saat App Dibuka
     // Kita jalankan setelah frame pertama agar tidak blocking UI awal
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -40,11 +40,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
 
   Future<void> _syncNotifications() async {
     if (kIsWeb) return; // Web tidak butuh sync local notif
-    
+
     // Kita cek apakah repository yang aktif adalah SupabaseTaskRepository
     // Karena kita butuh method khusus 'resyncLocalNotifications' yang ada disana
     final repo = ref.read(taskRepositoryProvider);
-    
+
     if (repo is SupabaseTaskRepository) {
       // Jalankan di background (async)
       repo.resyncLocalNotifications();
@@ -108,33 +108,52 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final inbox = ref.watch(inboxSharedTasksProvider);
+    final hasPending = inbox.maybeWhen(
+      data: (list) => list.any((s) => s.status == "pending"),
+      orElse: () => false,
+    );
+
     return Scaffold(
       // Menampilkan halaman sesuai index yang dipilih
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
+        items: <BottomNavigationBarItem>[
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+
+          const BottomNavigationBarItem(
             icon: Icon(Icons.assignment),
             label: 'Mata Kuliah',
           ),
+
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Stack(
+              children: [
+                const Icon(Icons.person),
+                if (hasPending)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             label: 'Akun',
           ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blueAccent,
+        unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         backgroundColor: const Color(0xFF1A1A1A),
-        unselectedItemColor: Colors.grey,
       ),
     );
   }

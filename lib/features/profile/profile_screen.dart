@@ -75,7 +75,6 @@ class ProfileScreen extends ConsumerWidget {
               children: [
                 const Icon(Icons.inbox, color: Colors.blueAccent, size: 30),
 
-                // 🔴 NOTIF DOT
                 if (hasPending)
                   Positioned(
                     right: 0,

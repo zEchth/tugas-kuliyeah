@@ -32,7 +32,6 @@ class MataKuliahDetailScreen extends ConsumerStatefulWidget {
 
 class _MataKuliahDetailScreenState
     extends ConsumerState<MataKuliahDetailScreen> {
-
   Future<String> downloadToTemp(String url) async {
     final response = await http.get(Uri.parse(url));
 
@@ -58,30 +57,70 @@ class _MataKuliahDetailScreenState
     return await showDialog<String>(
       context: context,
       builder: (context) {
-        String? selected;
+        String keyword = "";
 
-        return AlertDialog(
-          title: const Text("Pilih penerima"),
-          content: DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: "Pilih Email"),
-            items: users.map((u) {
-              final email = u['email'] as String;
-              return DropdownMenuItem<String>(value: email, child: Text(email));
-            }).toList(),
-            onChanged: (value) {
-              selected = value;
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, null),
-              child: const Text("Batal"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, selected),
-              child: const Text("Kirim"),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final filtered = users.where((u) {
+              final email = (u['email'] as String).toLowerCase();
+              return email.contains(keyword.toLowerCase());
+            }).toList();
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text("Bagikan Tugas"),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ✅ SEARCH BAR
+                    TextField(
+                      decoration: const InputDecoration(
+                        hintText: "Cari email...",
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (v) => setState(() => keyword = v),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // ✅ LIST EMAIL (TAP 1X LANGSUNG PILIH)
+                    Flexible(
+                      child: filtered.isEmpty
+                          ? const Text("Tidak ada hasil")
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: filtered.length,
+                              itemBuilder: (context, i) {
+                                final email = filtered[i]['email'] as String;
+
+                                return ListTile(
+                                  leading: const Icon(Icons.person),
+                                  title: Text(
+                                    email,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  onTap: () {
+                                    Navigator.pop(context, email);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, null),
+                  child: const Text("Batal"),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -142,7 +181,10 @@ class _MataKuliahDetailScreenState
               const SizedBox(height: 16),
 
               // Info
-              _buildDetailRow(Icons.calendar_today, DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(jadwal.tanggal)),
+              _buildDetailRow(
+                Icons.calendar_today,
+                DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(jadwal.tanggal),
+              ),
               _buildDetailRow(
                 Icons.access_time,
                 "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)}",
@@ -152,7 +194,7 @@ class _MataKuliahDetailScreenState
                 jadwal.ruangan ?? "Tidak ada ruangan",
               ),
               _buildDetailRow(Icons.school, widget.matkul.dosen),
-              
+
               // [BARU] Info Judul
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
@@ -160,7 +202,15 @@ class _MataKuliahDetailScreenState
                   children: [
                     const Icon(Icons.title, size: 18, color: Colors.grey),
                     const SizedBox(width: 12),
-                    Expanded(child: Text(jadwal.judul, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold))),
+                    Expanded(
+                      child: Text(
+                        jadwal.judul,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -288,8 +338,10 @@ class _MataKuliahDetailScreenState
                                         .updateTugas(
                                           tugas.copyWith(status: status),
                                         );
-                                    
-                                    ref.read(globalRefreshProvider.notifier).state++;
+
+                                    ref
+                                        .read(globalRefreshProvider.notifier)
+                                        .state++;
 
                                     if (mounted) {
                                       ScaffoldMessenger.of(
@@ -531,7 +583,9 @@ class _MataKuliahDetailScreenState
                       borderRadius: BorderRadius.circular(12),
                     ),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                   ),
                 ),
               ],
@@ -669,12 +723,17 @@ class _MataKuliahDetailScreenState
                                           _StatusBadge(status: status), // Badge
                                         ],
                                       ),
-                                      
+
                                       // [FIX] Tampilkan JUDUL di sini
                                       const SizedBox(height: 4),
                                       Text(
-                                        jadwal.judul, // Menampilkan judul persisten
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white70),
+                                        jadwal
+                                            .judul, // Menampilkan judul persisten
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: Colors.white70,
+                                        ),
                                       ),
 
                                       const SizedBox(height: 4),
@@ -737,7 +796,9 @@ class _MataKuliahDetailScreenState
                       borderRadius: BorderRadius.circular(12),
                     ),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                   ),
                 ),
               ],
@@ -840,7 +901,7 @@ class _MataKuliahDetailScreenState
                               child: Icon(
                                 _getTaskIcon(tugas.type),
                                 color: Colors.blueAccent,
-                                size: 20,
+                                size: 24,
                               ),
                             ),
                             title: Text(
@@ -896,11 +957,12 @@ class _MataKuliahDetailScreenState
                                 ),
                               ],
                             ),
+
                             // Action Share dipindah ke trailing
                             trailing: IconButton(
                               icon: const Icon(
                                 Icons.share,
-                                size: 20,
+                                size: 24,
                                 color: Colors.blueAccent,
                               ),
                               tooltip: "Bagikan Tugas",
@@ -911,18 +973,115 @@ class _MataKuliahDetailScreenState
                                 );
                                 if (receiverEmail == null) return;
 
-                                await ref
-                                    .read(taskRepositoryProvider)
-                                    .shareTugas(
-                                      tugasId: tugas.id,
-                                      receiverEmail: receiverEmail,
-                                    );
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Dikirim ke $receiverEmail"),
+                                // ✅ CONFIRM
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text("Konfirmasi"),
+                                    content: Text(
+                                      "Kirim tugas ke:\n$receiverEmail ?",
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        child: const Text("Batal"),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        child: const Text("Kirim"),
+                                      ),
+                                    ],
                                   ),
                                 );
+
+                                if (confirm != true) return;
+
+                                // LOADING
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (_) => const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+
+                                try {
+                                  await ref
+                                      .read(taskRepositoryProvider)
+                                      .shareTugas(
+                                        tugasId: tugas.id,
+                                        receiverEmail: receiverEmail,
+                                      );
+
+                                  Navigator.pop(context); // tutup loading
+
+                                  // SUCCESS SNACKBAR
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      behavior: SnackBarBehavior.floating,
+                                      margin: const EdgeInsets.all(16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      backgroundColor: Colors.blueAccent,
+                                      content: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.check_circle,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              "Tugas berhasil dikirim ke $receiverEmail",
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  Navigator.pop(context); // tutup loading
+
+                                  // ERROR SNACKBAR MERAH
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      behavior: SnackBarBehavior.floating,
+                                      margin: const EdgeInsets.all(16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      backgroundColor: Colors.redAccent,
+                                      content: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.error,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              "Gagal mengirim tugas",
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                }
                               },
                             ),
                           ),

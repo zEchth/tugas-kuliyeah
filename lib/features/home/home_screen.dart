@@ -31,14 +31,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // [BARU] Navigasi Bulan Mundur
   void _previousMonth() {
     setState(() {
-      _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1, _focusedDay.day);
+      _focusedDay = DateTime(
+        _focusedDay.year,
+        _focusedDay.month - 1,
+        _focusedDay.day,
+      );
     });
   }
 
   // [BARU] Navigasi Bulan Maju
   void _nextMonth() {
     setState(() {
-      _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1, _focusedDay.day);
+      _focusedDay = DateTime(
+        _focusedDay.year,
+        _focusedDay.month + 1,
+        _focusedDay.day,
+      );
     });
   }
 
@@ -52,9 +60,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // 1. Cek Jadwal Kuliah (Sekarang berdasarkan TANGGAL SPESIFIK)
     final jadwalHariIni = allJadwal.where((j) {
-      return isSameDay(j.tanggal, day); 
+      return isSameDay(j.tanggal, day);
     }).toList();
-    
+
     events.addAll(jadwalHariIni);
 
     // 2. Cek Tugas (One-time)
@@ -112,14 +120,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Expanded(
                     child: Text(
                       jadwal.mataKuliahName ?? "Jadwal Kuliah",
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   _StatusBadge(status: jadwal.statusPertemuan),
                 ],
               ),
               const SizedBox(height: 8),
-              
+
               // [UPDATE] Info Judul Jadwal (Bukan lagi angka pertemuan ke-X yang kaku)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -129,19 +140,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 child: Text(
                   jadwal.judul, // [FIX] Gunakan field judul
-                  style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                  style: const TextStyle(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
 
               const SizedBox(height: 16),
               _buildDetailRow(
-                Icons.calendar_today, 
-                DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(jadwal.tanggal)
+                Icons.calendar_today,
+                DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(jadwal.tanggal),
               ),
-              _buildDetailRow(Icons.access_time,
-                  "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)}"),
+              _buildDetailRow(
+                Icons.access_time,
+                "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)}",
+              ),
               _buildDetailRow(Icons.location_on, jadwal.ruangan ?? "-"),
-              
+
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -149,7 +166,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: const Text("Tutup"),
                 ),
-              )
+              ),
             ],
           ),
         );
@@ -170,61 +187,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               Text(
                 tugas.title,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 tugas.mataKuliahName ?? "Tugas",
                 style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 16),
-              const Text("Status Pengerjaan:", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                "Status Pengerjaan:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
 
               Wrap(
                 spacing: 8,
                 children: ["Belum Dikerjakan", "Dalam Pengerjaan", "Selesai"]
                     .map((status) {
-                  final isSelected = tugas.status == status;
-                  return ChoiceChip(
-                    label: Text(status),
-                    selected: isSelected,
-                    onSelected: (selected) async {
-                      if (selected) {
-                        Navigator.pop(context);
-                        try {
-                          await ref
-                              .read(taskRepositoryProvider)
-                              .updateTugas(tugas.copyWith(status: status));
+                      final isSelected = tugas.status == status;
+                      return ChoiceChip(
+                        label: Text(status),
+                        selected: isSelected,
+                        onSelected: (selected) async {
+                          if (selected) {
+                            Navigator.pop(context);
+                            try {
+                              await ref
+                                  .read(taskRepositoryProvider)
+                                  .updateTugas(tugas.copyWith(status: status));
 
-                          // Force refresh home screen data
-                          ref.refresh(allTugasRawProvider);
+                              // Force refresh home screen data
+                              ref.refresh(allTugasRawProvider);
 
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Status diupdate: $status")));
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("Status diupdate: $status"),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Gagal update: $e")),
+                              );
+                            }
                           }
-                        } catch (e) {
-                           ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Gagal update: $e")));
-                        }
-                      }
-                    },
-                  );
-                }).toList(),
+                        },
+                      );
+                    })
+                    .toList(),
               ),
 
-              if(tugas.note != null && tugas.note!.isNotEmpty)
-                 Padding(
-                   padding: const EdgeInsets.only(top: 16.0),
-                   child: Text("Catatan:\n${tugas.note}"),
-                 ),
+              if (tugas.note != null && tugas.note!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Text("Catatan:\n${tugas.note}"),
+                ),
 
               const SizedBox(height: 16),
               Row(
                 children: [
                   const Icon(Icons.timer, color: Colors.redAccent),
                   const SizedBox(width: 8),
-                  Text("Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)}"),
+                  Text(
+                    "Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)}",
+                  ),
                 ],
               ),
             ],
@@ -268,12 +298,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now()),
+                      DateFormat(
+                        'EEEE, d MMMM yyyy',
+                        'id_ID',
+                      ).format(DateTime.now()),
                       style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     Text(
                       "Halo, $userName!",
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -283,11 +319,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               // BAGIAN KALENDER
               asyncJadwal.when(
-                loading: () => const Center(child: Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: CircularProgressIndicator(),
-                )),
-                error: (e, s) => Center(child: Text("Gagal memuat kalender: $e")),
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                error: (e, s) =>
+                    Center(child: Text("Gagal memuat kalender: $e")),
                 data: (listJadwal) {
                   return asyncTugas.when(
                     loading: () => const SizedBox(),
@@ -297,30 +336,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         children: [
                           // Custom Header dengan Navigasi Bulan
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 8.0,
+                            ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 // Navigasi Bulan (Kiri)
                                 IconButton(
-                                  icon: const Icon(Icons.chevron_left, color: Colors.grey),
+                                  icon: const Icon(
+                                    Icons.chevron_left,
+                                    color: Colors.grey,
+                                  ),
                                   onPressed: _previousMonth,
                                   tooltip: "Bulan Sebelumnya",
                                 ),
 
                                 // Nama Bulan & Tahun
-                                Text(
-                                  DateFormat('MMMM yyyy', 'id_ID').format(_focusedDay),
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                                Expanded(
+                                  child: Text(
+                                    DateFormat(
+                                      'MMMM yyyy',
+                                      'id_ID',
+                                    ).format(_focusedDay),
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
 
                                 // Navigasi Bulan (Kanan)
                                 IconButton(
-                                  icon: const Icon(Icons.chevron_right, color: Colors.grey),
+                                  icon: const Icon(
+                                    Icons.chevron_right,
+                                    color: Colors.grey,
+                                  ),
                                   onPressed: _nextMonth,
                                   tooltip: "Bulan Selanjutnya",
                                 ),
-                                
+
                                 // Spacer agar tombol View Mode mojok kanan
                                 const SizedBox(width: 8),
 
@@ -331,29 +389,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     onTap: _cycleCalendarFormat,
                                     borderRadius: BorderRadius.circular(20),
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: Colors.blueAccent.withOpacity(0.1),
+                                        color: Colors.blueAccent.withOpacity(
+                                          0.1,
+                                        ),
                                         borderRadius: BorderRadius.circular(20),
                                         border: Border.all(
-                                          color: Colors.blueAccent.withOpacity(0.3)
+                                          color: Colors.blueAccent.withOpacity(
+                                            0.3,
+                                          ),
                                         ),
                                       ),
                                       child: Row(
+                                        // mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
                                             _getFormatLabel(),
                                             style: const TextStyle(
-                                              fontSize: 12, 
+                                              fontSize: 12,
                                               fontWeight: FontWeight.bold,
-                                              color: Colors.blueAccent
+                                              color: Colors.blueAccent,
                                             ),
                                           ),
                                           const SizedBox(width: 4),
                                           Icon(
-                                            _calendarFormat == CalendarFormat.month 
-                                              ? Icons.unfold_less 
-                                              : Icons.unfold_more,
+                                            _calendarFormat ==
+                                                    CalendarFormat.month
+                                                ? Icons.unfold_less
+                                                : Icons.unfold_more,
                                             size: 16,
                                             color: Colors.blueAccent,
                                           ),
@@ -382,7 +449,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text(
                   "Agenda ${_selectedDay != null ? DateFormat('d MMMM', 'id_ID').format(_selectedDay!) : 'Hari Ini'}",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -395,11 +465,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
                   children: [
-                    const Icon(Icons.access_alarm, color: Colors.redAccent, size: 20),
+                    const Icon(
+                      Icons.access_alarm,
+                      color: Colors.redAccent,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     const Text(
                       "Tugas Terdekat",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -416,38 +493,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   // Widget Kalender
-  Widget _buildCalendar(List<core_model.Jadwal> jadwalList, List<core_model.Tugas> tugasList) {
+  Widget _buildCalendar(
+    List<core_model.Jadwal> jadwalList,
+    List<core_model.Tugas> tugasList,
+  ) {
     return TableCalendar(
       locale: 'id_ID',
-      firstDay: DateTime.utc(2020, 1, 1), 
+      firstDay: DateTime.utc(2020, 1, 1),
       lastDay: DateTime.utc(2035, 12, 31),
       focusedDay: _focusedDay,
       calendarFormat: _calendarFormat,
-      
-      headerVisible: false, 
+
+      headerVisible: false,
 
       daysOfWeekStyle: const DaysOfWeekStyle(
-        weekdayStyle: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
-        weekendStyle: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
+        weekdayStyle: TextStyle(
+          color: Colors.grey,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+        weekendStyle: TextStyle(
+          color: Colors.grey,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
       ),
-      
+
       calendarStyle: CalendarStyle(
         defaultTextStyle: const TextStyle(color: Colors.white),
         weekendTextStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
-        
+
         selectedDecoration: const BoxDecoration(
           color: Colors.blueAccent,
           shape: BoxShape.circle,
         ),
-        
+
         todayDecoration: BoxDecoration(
           color: Colors.transparent,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.blueAccent, width: 1.5),
         ),
-        todayTextStyle: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
-        
-        outsideDaysVisible: false, 
+        todayTextStyle: const TextStyle(
+          color: Colors.blueAccent,
+          fontWeight: FontWeight.bold,
+        ),
+
+        outsideDaysVisible: false,
       ),
 
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
@@ -481,21 +572,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           bool hasJadwal = events.any((e) => e is core_model.Jadwal);
 
           return Positioned(
-            bottom: 4, 
+            bottom: 4,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (hasJadwal)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                    width: 4, height: 4,
-                    decoration: const BoxDecoration(color: Colors.lightBlueAccent, shape: BoxShape.circle),
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      color: Colors.lightBlueAccent,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 if (hasTugas)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                    width: 4, height: 4,
-                    decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      color: Colors.redAccent,
+                      shape: BoxShape.circle,
+                    ),
                   ),
               ],
             ),
@@ -508,7 +607,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // Widget List Agenda
   Widget _buildAgendaList(
     AsyncValue<List<core_model.Jadwal>> asyncJadwal,
-    AsyncValue<List<core_model.Tugas>> asyncTugas
+    AsyncValue<List<core_model.Tugas>> asyncTugas,
   ) {
     if (asyncJadwal.isLoading || asyncTugas.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -527,7 +626,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              Icon(Icons.event_busy, size: 40, color: Colors.grey.withOpacity(0.3)),
+              Icon(
+                Icons.event_busy,
+                size: 40,
+                color: Colors.grey.withOpacity(0.3),
+              ),
               const SizedBox(height: 8),
               Text(
                 "Tidak ada agenda.",
@@ -543,8 +646,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       DateTime timeA;
       if (a is core_model.Jadwal) {
         timeA = DateTime(
-          a.tanggal.year, a.tanggal.month, a.tanggal.day, 
-          a.jamMulai.hour, a.jamMulai.minute
+          a.tanggal.year,
+          a.tanggal.month,
+          a.tanggal.day,
+          a.jamMulai.hour,
+          a.jamMulai.minute,
         );
       } else {
         timeA = (a as core_model.Tugas).dueAt;
@@ -553,8 +659,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       DateTime timeB;
       if (b is core_model.Jadwal) {
         timeB = DateTime(
-          b.tanggal.year, b.tanggal.month, b.tanggal.day, 
-          b.jamMulai.hour, b.jamMulai.minute
+          b.tanggal.year,
+          b.tanggal.month,
+          b.tanggal.day,
+          b.jamMulai.hour,
+          b.jamMulai.minute,
         );
       } else {
         timeB = (b as core_model.Tugas).dueAt;
@@ -578,8 +687,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   // Widget List Tugas Terdekat
-  Widget _buildUpcomingTasksList(AsyncValue<List<core_model.Tugas>> asyncTugas) {
-    if (asyncTugas.isLoading) return const Center(child: CircularProgressIndicator());
+  Widget _buildUpcomingTasksList(
+    AsyncValue<List<core_model.Tugas>> asyncTugas,
+  ) {
+    if (asyncTugas.isLoading)
+      return const Center(child: CircularProgressIndicator());
     if (asyncTugas.hasError) return Text("Error: ${asyncTugas.error}");
 
     final listTugas = asyncTugas.value ?? [];
@@ -598,7 +710,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              Icon(Icons.task_alt, size: 40, color: Colors.green.withOpacity(0.5)),
+              Icon(
+                Icons.task_alt,
+                size: 40,
+                color: Colors.green.withOpacity(0.5),
+              ),
               const SizedBox(height: 8),
               const Text(
                 "Tidak ada tugas mendesak. Kerja bagus!",
@@ -625,7 +741,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildJadwalCard(core_model.Jadwal item) {
     final status = item.getStatus(DateTime.now());
-    
+
     return GestureDetector(
       onTap: () => _showJadwalDetail(item),
       child: Container(
@@ -648,10 +764,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Text(
                     DateFormat('HH:mm').format(item.jamMulai),
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
                   ),
                   const SizedBox(height: 2),
-                  const Text("Mulai", style: TextStyle(fontSize: 9, color: Colors.grey)),
+                  const Text(
+                    "Mulai",
+                    style: TextStyle(fontSize: 9, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -662,7 +784,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Text(
                     item.mataKuliahName ?? "Jadwal",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -673,7 +798,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         color: Colors.grey,
                       ),
                       const SizedBox(width: 4),
-                      Text(item.ruangan ?? "-", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Text(
+                        item.ruangan ?? "-",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
                       const SizedBox(width: 10),
                       _StatusBadgeMini(status: status),
                     ],
@@ -695,24 +826,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildTugasCard(core_model.Tugas item) {
     // [LOGIKA FIX] Cek selisih hari DAN status tugas
-    final isUrgent = item.dueAt.difference(DateTime.now()).inDays < 2 && item.status != 'Selesai';
-    
+    final isUrgent =
+        item.dueAt.difference(DateTime.now()).inDays < 2 &&
+        item.status != 'Selesai';
+
     return GestureDetector(
       onTap: () => _showTugasDetail(item),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isUrgent ? Colors.redAccent.withOpacity(0.1) : const Color(0xFF1E1E1E),
+          color: isUrgent
+              ? Colors.redAccent.withOpacity(0.1)
+              : const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isUrgent ? Colors.redAccent.withOpacity(0.3) : Colors.white10),
+          border: Border.all(
+            color: isUrgent
+                ? Colors.redAccent.withOpacity(0.3)
+                : Colors.white10,
+          ),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isUrgent ? Colors.redAccent.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                color: isUrgent
+                    ? Colors.redAccent.withValues(alpha: 0.1)
+                    : Colors.grey.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -721,11 +862,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     DateFormat('HH:mm').format(item.dueAt),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isUrgent ? Colors.redAccent : Colors.white
+                      color: isUrgent ? Colors.redAccent : Colors.white,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(DateFormat('d MMM').format(item.dueAt), style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                  Text(
+                    DateFormat('d MMM').format(item.dueAt),
+                    style: const TextStyle(fontSize: 9, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -739,7 +883,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      decoration: item.status == 'Selesai' ? TextDecoration.lineThrough : null,
+                      decoration: item.status == 'Selesai'
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
                   Text(
@@ -758,10 +904,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   IconData _getTaskIcon(String type) {
     switch (type.toLowerCase()) {
-      case 'kuis': return Icons.quiz;
-      case 'uts': return Icons.history_edu;
-      case 'uas': return Icons.school;
-      default: return Icons.assignment;
+      case 'kuis':
+        return Icons.quiz;
+      case 'uts':
+        return Icons.history_edu;
+      case 'uas':
+        return Icons.school;
+      default:
+        return Icons.assignment;
     }
   }
 }
@@ -786,7 +936,11 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         status,
-        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
