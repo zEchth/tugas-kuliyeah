@@ -27,6 +27,10 @@ abstract class TaskRepository {
     required TimeOfDay jamMulai,
     required TimeOfDay jamSelesai,
     required String ruangan,
+    // [BARU] Kontrol Penamaan
+    required bool useAutoTitle, // True = Series, False = Custom
+    required String customTitlePrefix, // Teks custom atau "Pertemuan ke-"
+    required int startNumber, // Angka mulai (User defined)
   });
 
   // [MODIFIKASI] Update satu pertemuan spesifik (misal geser jadwal)

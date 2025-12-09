@@ -10,8 +10,11 @@ class Jadwal {
   // [BARU] Tanggal spesifik pertemuan (YYYY-MM-DD)
   final DateTime tanggal;
   
-  // [BARU] Pertemuan ke-berapa (1, 2, 3...)
+  // [LEGACY] Pertemuan ke-berapa (tetap disimpan tapi tidak lagi menjadi penentu judul)
   final int pertemuanKe;
+  
+  // [BARU] Judul Persisten (String bebas)
+  final String judul;
   
   // [BARU] Status per pertemuan (Terjadwal, Selesai, Libur, dll)
   final String statusPertemuan;
@@ -31,6 +34,7 @@ class Jadwal {
     required this.ownerId,
     required this.tanggal,
     required this.pertemuanKe,
+    required this.judul, // [BARU]
     this.statusPertemuan = 'Terjadwal',
     required this.jamMulai,
     required this.jamSelesai,
@@ -66,6 +70,10 @@ class Jadwal {
       // Parsing Tanggal (Date Only)
       tanggal: DateTime.parse(map['tanggal']),
       pertemuanKe: map['pertemuan_ke'] ?? 1,
+      
+      // [BARU] Ambil Judul. Fallback ke format lama jika kolom judul masih null (data lama)
+      judul: map['judul'] ?? 'Pertemuan ke-${map['pertemuan_ke'] ?? "?"}',
+      
       statusPertemuan: map['status_pertemuan'] ?? 'Terjadwal',
 
       // Parsing Jam (Time Only) - Kita tempel ke dummy date agar jadi DateTime object
@@ -92,6 +100,7 @@ class Jadwal {
       // DateTime -> Date String (YYYY-MM-DD)
       'tanggal': tanggal.toIso8601String().split('T')[0],
       'pertemuan_ke': pertemuanKe,
+      'judul': judul, // [BARU]
       'status_pertemuan': statusPertemuan,
 
       // DateTime -> TIME (tanpa tanggal)
@@ -140,6 +149,7 @@ class Jadwal {
     String? ownerId,
     DateTime? tanggal,
     int? pertemuanKe,
+    String? judul, // [BARU]
     String? statusPertemuan,
     DateTime? jamMulai,
     DateTime? jamSelesai,
@@ -154,6 +164,7 @@ class Jadwal {
       ownerId: ownerId ?? this.ownerId,
       tanggal: tanggal ?? this.tanggal,
       pertemuanKe: pertemuanKe ?? this.pertemuanKe,
+      judul: judul ?? this.judul,
       statusPertemuan: statusPertemuan ?? this.statusPertemuan,
       jamMulai: jamMulai ?? this.jamMulai,
       jamSelesai: jamSelesai ?? this.jamSelesai,

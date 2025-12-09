@@ -113,49 +113,6 @@ class _MataKuliahDetailScreenState
         ).showSnackBar(SnackBar(content: Text("Gagal buka file: $e")));
       }
     }
-
-    // try {
-    //   if (kIsWeb) {
-    //     // [KONSTRUKTOR] Logika Khusus Web
-    //     // Di Web, path dari file_picker biasanya berupa Blob URL (blob:http://...)
-    //     // Kita harus menggunakan url_launcher untuk membukanya di tab browser.
-    //     final Uri uri = Uri.parse(path);
-
-    //     // Kita coba launch langsung. Browser modern mungkin memblokir ini jika
-    //     // tidak dipicu langsung oleh user gesture, tapi onTap adalah user gesture.
-    //     if (await canLaunchUrl(uri)) {
-    //       await launchUrl(uri);
-    //     } else {
-    //       // Fallback: Terkadang canLaunchUrl return false untuk blob,
-    //       // tapi launchUrl tetap berhasil. Kita coba paksa.
-    //       debugPrint("[DEBUG] canLaunchUrl false, mencoba paksa launchUrl...");
-    //       await launchUrl(uri);
-    //     }
-    //   } else {
-    //     // [KONSTRUKTOR] Logika Mobile (Android/iOS)
-    //     // OpenFilex bekerja sangat baik di mobile dengan path fisik storage.
-    //     final result = await OpenFilex.open(path);
-    //     debugPrint(
-    //       "[DEBUG] Hasil OpenFilex: ${result.type} - ${result.message}",
-    //     );
-
-    //     if (result.type != ResultType.done) {
-    //       throw Exception(result.message);
-    //     }
-    //   }
-    // } catch (e) {
-    //   // Error Handling Terpusat
-    //   debugPrint("[ERROR] Gagal membuka file: $e");
-    //   if (context.mounted) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(
-    //         content: Text("Gagal buka file: $e"),
-    //         backgroundColor: Colors.red,
-    //         duration: Duration(seconds: 3),
-    //       ),
-    //     );
-    //   }
-    // }
   }
 
   // [UX UPDATE] Bottom Sheet untuk Detail Jadwal (Konsisten dengan Home)
@@ -185,7 +142,7 @@ class _MataKuliahDetailScreenState
               const SizedBox(height: 16),
 
               // Info
-              _buildDetailRow(Icons.calendar_today, jadwal.hari),
+              _buildDetailRow(Icons.calendar_today, DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(jadwal.tanggal)),
               _buildDetailRow(
                 Icons.access_time,
                 "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)}",
@@ -195,6 +152,18 @@ class _MataKuliahDetailScreenState
                 jadwal.ruangan ?? "Tidak ada ruangan",
               ),
               _buildDetailRow(Icons.school, widget.matkul.dosen),
+              
+              // [BARU] Info Judul
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    const Icon(Icons.title, size: 18, color: Colors.grey),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(jadwal.judul, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold))),
+                  ],
+                ),
+              ),
 
               const SizedBox(height: 24),
 
@@ -700,6 +669,14 @@ class _MataKuliahDetailScreenState
                                           _StatusBadge(status: status), // Badge
                                         ],
                                       ),
+                                      
+                                      // [FIX] Tampilkan JUDUL di sini
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        jadwal.judul, // Menampilkan judul persisten
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white70),
+                                      ),
+
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [

@@ -25,7 +25,6 @@ class AddEditJadwalScreen extends ConsumerStatefulWidget {
 }
 
 class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
-  // final id = const Uuid().v4(); // Tidak dipakai jika generate batch
   final _formKey = GlobalKey<FormState>();
   bool _isEditing = false;
 
@@ -34,18 +33,18 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
   // [BARU] Controller untuk jumlah pertemuan (Hanya mode Tambah)
   late TextEditingController _jumlahPertemuanC;
   
-  // [UBAH] Dari _selectedHari (String) menjadi _selectedDate (DateTime)
-  DateTime? _selectedDate;
+  // [BARU] Controller untuk Penamaan
+  late TextEditingController _customTitleC; // Untuk judul "UTS" atau "Pertemuan ke-"
+  late TextEditingController _startNumberC; // Untuk angka mulai (2, 36, dll)
   
+  // State Mode Penamaan
+  // true = "Pertemuan ke-{N}", "Pertemuan ke-{N+1}"
+  // false = "UTS", "UTS" (Custom text statis)
+  bool _useAutoTitle = true; 
+
+  DateTime? _selectedDate;
   TimeOfDay? _jamMulai;
   TimeOfDay? _jamSelesai;
-
-  // [HAPUS] List hari string tidak lagi diperlukan karena pakai DatePicker
-  /*
-  final List<String> _hariList = [
-    "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu",
-  ];
-  */
 
   @override
   void initState() {
@@ -60,7 +59,6 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
     _jumlahPertemuanC = TextEditingController(text: '16'); 
 
     // Jika edit, ambil tanggal spesifik dari jadwal tersebut
-    // Jika tambah, null dulu (nanti user pilih tanggal mulai)
     _selectedDate = _isEditing ? widget.jadwal!.tanggal : null;
     
     _jamMulai = _isEditing
@@ -69,12 +67,27 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
     _jamSelesai = _isEditing
         ? TimeOfDay.fromDateTime(widget.jadwal!.jamSelesai)
         : null;
+        
+    // [BARU] Inisialisasi Judul & Angka
+    if (_isEditing) {
+      // Jika edit single, anggap selalu Custom agar user bebas ubah teksnya
+      _useAutoTitle = false;
+      _customTitleC = TextEditingController(text: widget.jadwal!.judul);
+      _startNumberC = TextEditingController(); // Tidak dipakai di mode edit single
+    } else {
+      // Mode Add Batch
+      _useAutoTitle = true;
+      _customTitleC = TextEditingController(text: "Pertemuan ke-");
+      _startNumberC = TextEditingController(text: "1"); // Default mulai dari 1
+    }
   }
 
   @override
   void dispose() {
     _ruanganC.dispose();
     _jumlahPertemuanC.dispose();
+    _customTitleC.dispose();
+    _startNumberC.dispose();
     super.dispose();
   }
 
@@ -111,7 +124,7 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
   }
 
   Future<void> _submitForm() async {
-    // Validasi input
+    // Validasi input dasar
     if (!_formKey.currentState!.validate() ||
         _selectedDate == null ||
         _jamMulai == null ||
@@ -123,7 +136,6 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
     }
 
     // Validasi Logika Jam
-    // Kita buat dummy date untuk komparasi jam
     final dtMulai = DateTime(2000, 1, 1, _jamMulai!.hour, _jamMulai!.minute);
     final dtSelesai = DateTime(2000, 1, 1, _jamSelesai!.hour, _jamSelesai!.minute);
 
@@ -147,13 +159,11 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
     try {
       if (_isEditing) {
         // ==========================================
-        // MODE EDIT: UPDATE SINGLE ROW (Pertemuan Ini Saja)
+        // MODE EDIT: UPDATE SINGLE ROW (Judul String Bebas)
         // ==========================================
-        // Ini memberi fleksibilitas: User bisa memindah 1 pertemuan ke hari lain
         
-        // Kita copy object lama, update data yang berubah
         final updatedJadwal = widget.jadwal!.copyWith(
-          tanggal: _selectedDate!, // Update tanggal spesifik
+          tanggal: _selectedDate!, 
           jamMulai: DateTime(
             _selectedDate!.year, _selectedDate!.month, _selectedDate!.day,
             _jamMulai!.hour, _jamMulai!.minute
@@ -163,22 +173,23 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
             _jamSelesai!.hour, _jamSelesai!.minute
           ),
           ruangan: _ruanganC.text,
-          // batchId & pertemuanKe JANGAN DIUBAH agar tetap terlacak
+          judul: _customTitleC.text, // Simpan judul apa adanya dari input
         );
 
         await repo.updateJadwal(updatedJadwal);
         
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Pertemuan ke-${widget.jadwal!.pertemuanKe} diperbarui!")),
+            SnackBar(content: Text("Jadwal diperbarui!")),
           );
         }
 
       } else {
         // ==========================================
-        // MODE TAMBAH: GENERATE BATCH (Satu Semester)
+        // MODE TAMBAH: GENERATE BATCH (Controlled Naming)
         // ==========================================
         final jumlah = int.tryParse(_jumlahPertemuanC.text) ?? 14;
+        final startNum = int.tryParse(_startNumberC.text) ?? 1;
         
         await repo.generateJadwalSemester(
           mataKuliahId: widget.mataKuliahId,
@@ -187,6 +198,11 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
           jamMulai: _jamMulai!,
           jamSelesai: _jamSelesai!,
           ruangan: _ruanganC.text,
+          
+          // Parameter Kontrol
+          useAutoTitle: _useAutoTitle,
+          customTitlePrefix: _customTitleC.text, // "Pertemuan ke-" atau "UTS"
+          startNumber: startNum, // Angka mulai yg ditentukan user
         );
 
         if (mounted) {
@@ -196,9 +212,9 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
         }
       }
 
-      // [PENTING] Refresh Provider agar data baru muncul & data hantu hilang
+      // [PENTING] Refresh Provider
       ref.invalidate(jadwalByMatkulProvider);
-      ref.invalidate(allJadwalRawProvider); // Jika ada provider home
+      ref.invalidate(allJadwalRawProvider);
       ref.read(globalRefreshProvider.notifier).state++;
 
       if (mounted) {
@@ -217,7 +233,7 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? "Edit Jadwal" : "Buat Jadwal Semester")),
+      appBar: AppBar(title: Text(_isEditing ? "Edit Jadwal" : "Buat Jadwal")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -229,7 +245,7 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
                 // --- BAGIAN TANGGAL ---
                 Text(
                   _isEditing 
-                  ? "Tanggal Pertemuan Ini (Bisa diubah jika ada pengganti)" 
+                  ? "Tanggal Pertemuan Ini" 
                   : "Tanggal Pertemuan Pertama",
                   style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
                 ),
@@ -257,11 +273,93 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
                     ),
                   ),
                 ),
-                
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
-                // --- BAGIAN JUMLAH PERTEMUAN (HANYA ADD MODE) ---
+                // ===============================================
+                //       BAGIAN PENAMAAN & JUMLAH (LOGIKA BARU)
+                // ===============================================
+                
                 if (!_isEditing) ...[
+                  const Text("Pengaturan Penamaan", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 10),
+                  
+                  Container(
+                     padding: const EdgeInsets.all(12),
+                     decoration: BoxDecoration(
+                       color: const Color(0xFF1E1E1E),
+                       borderRadius: BorderRadius.circular(12),
+                       border: Border.all(color: Colors.white10),
+                     ),
+                     child: Column(
+                       children: [
+                         // Opsi 1: Format Seri
+                         RadioListTile<bool>(
+                           title: const Text("Format Seri"),
+                           subtitle: Text('Contoh: "${_customTitleC.text}1", "${_customTitleC.text}2"...'),
+                           value: true,
+                           groupValue: _useAutoTitle,
+                           activeColor: Colors.blueAccent,
+                           onChanged: (val) {
+                             setState(() {
+                               _useAutoTitle = val!;
+                               _customTitleC.text = "Pertemuan ke-"; // Reset default
+                             });
+                           },
+                         ),
+                         
+                         // Opsi 2: Format Kustom
+                         RadioListTile<bool>(
+                           title: const Text("Format Kustom (Statis)"),
+                           subtitle: const Text('Contoh: "Responsi", "Ujian Praktik" (Semua jadwal bernama sama)'),
+                           value: false,
+                           groupValue: _useAutoTitle,
+                           activeColor: Colors.blueAccent,
+                           onChanged: (val) {
+                             setState(() {
+                               _useAutoTitle = val!;
+                               _customTitleC.clear(); // Clear agar user isi sendiri
+                             });
+                           },
+                         ),
+                         
+                         const Divider(color: Colors.white24),
+                         const SizedBox(height: 8),
+
+                         // Field 1: Input Judul / Prefix
+                         TextFormField(
+                            controller: _customTitleC,
+                            decoration: InputDecoration(
+                              labelText: _useAutoTitle ? "Awalan Judul" : "Judul Jadwal",
+                              hintText: _useAutoTitle ? "Pertemuan ke-" : "Misal: Responsi",
+                              prefixIcon: const Icon(Icons.title),
+                              filled: true,
+                              fillColor: Colors.black12,
+                            ),
+                            onChanged: (_) => setState((){}), // Refresh UI preview
+                            validator: (v) => v!.isEmpty ? "Judul tidak boleh kosong" : null,
+                         ),
+                         
+                         // Field 2: Input Angka Mulai (Hanya jika Format Seri)
+                         if (_useAutoTitle) ...[
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _startNumberC,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: "Mulai dari Nomor Berapa?",
+                                helperText: "Tentukan sendiri nomor awalnya (misal 1, 36, atau 5)",
+                                prefixIcon: Icon(Icons.format_list_numbered),
+                                filled: true,
+                                fillColor: Colors.black12,
+                              ),
+                            ),
+                         ],
+                       ],
+                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Jumlah Pertemuan
                   TextFormField(
                     controller: _jumlahPertemuanC,
                     keyboardType: TextInputType.number,
@@ -269,6 +367,7 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
                       labelText: "Jumlah Pertemuan (Minggu)",
                       helperText: "Akan men-generate jadwal mingguan otomatis",
                       prefixIcon: Icon(Icons.repeat),
+                      border: OutlineInputBorder(),
                     ),
                     validator: (v) {
                       final val = int.tryParse(v ?? '');
@@ -277,8 +376,18 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                ] else ...[
+                   // Jika Edit Mode: Hanya Text Field Judul Biasa
+                   TextFormField(
+                      controller: _customTitleC,
+                      decoration: const InputDecoration(
+                        labelText: "Judul Jadwal",
+                        prefixIcon: Icon(Icons.edit),
+                      ),
+                   ),
                 ],
+
+                const SizedBox(height: 24),
                 
                 // --- BAGIAN JAM ---
                 Row(
@@ -338,16 +447,6 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
                   ),
                   child: Text(_isEditing ? "Simpan Perubahan" : "Generate Jadwal"),
                 ),
-                
-                if (!_isEditing)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12.0),
-                    child: Text(
-                      "*Tips: Setelah generate, kamu bisa mengedit atau menghapus pertemuan spesifik (misal saat libur) melalui detail mata kuliah.",
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
               ],
             ),
           ),

@@ -28,22 +28,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _selectedDay = _focusedDay;
   }
 
-  // [HAPUS/KOMENTAR] Helper lama tidak lagi dibutuhkan karena kita pakai tanggal spesifik
-  /*
-  String _getDayNameFromDate(DateTime date) {
-    switch (date.weekday) {
-      case 1: return "Senin";
-      case 2: return "Selasa";
-      case 3: return "Rabu";
-      case 4: return "Kamis";
-      case 5: return "Jumat";
-      case 6: return "Sabtu";
-      case 7: return "Minggu";
-      default: return "Senin";
-    }
-  }
-  */
-
   // [PERBAIKAN LOGIKA] Mengambil event (Jadwal & Tugas) untuk tanggal tertentu
   List<dynamic> _getEventsForDay(
     DateTime day,
@@ -53,8 +37,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     List<dynamic> events = [];
 
     // 1. Cek Jadwal Kuliah (Sekarang berdasarkan TANGGAL SPESIFIK)
-    // Logika Lama: allJadwal.where((j) => j.hari == dayName)... -> SALAH untuk skema baru
-    // Logika Baru: Cek apakah tanggalnya sama persis
     final jadwalHariIni = allJadwal.where((j) {
       return isSameDay(j.tanggal, day); 
     }).toList();
@@ -98,7 +80,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   // BottomSheet Detail Jadwal
-  // [UPDATE] Menampilkan Pertemuan Ke & Status
   void _showJadwalDetail(core_model.Jadwal jadwal) {
     showModalBottomSheet(
       context: context,
@@ -125,7 +106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               const SizedBox(height: 8),
               
-              // Info Pertemuan Ke
+              // [UPDATE] Info Judul Jadwal (Bukan lagi angka pertemuan ke-X yang kaku)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -133,7 +114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  "Pertemuan ke-${jadwal.pertemuanKe}",
+                  jadwal.judul, // [FIX] Gunakan field judul
                   style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
@@ -261,7 +242,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final asyncTugas = ref.watch(allTugasLengkapProvider);
 
     return Scaffold(
-      // Background scaffold dibiarkan default theme (biasanya hitam/dark grey di mode dark)
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -287,7 +267,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               const SizedBox(height: 24),
 
-              // BAGIAN KALENDER (Custom Header + Calendar)
+              // BAGIAN KALENDER
               asyncJadwal.when(
                 loading: () => const Center(child: Padding(
                   padding: EdgeInsets.all(20.0),
@@ -307,12 +287,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Bulan & Tahun (Lebih besar dan bersih)
+                                // Bulan & Tahun
                                 Text(
                                   DateFormat('MMMM yyyy', 'id_ID').format(_focusedDay),
                                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                                 ),
-                                // Tombol View Mode (Restyled)
+                                // Tombol View Mode
                                 Material(
                                   color: Colors.transparent,
                                   child: InkWell(
@@ -365,7 +345,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               const SizedBox(height: 24),
 
-              // LIST 1: AGENDA HARI TERPILIH (Jadwal & Tugas Tanggal Itu)
+              // LIST 1: AGENDA HARI TERPILIH
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text(
@@ -376,9 +356,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 8),
               _buildAgendaList(asyncJadwal, asyncTugas),
 
-              const SizedBox(height: 24), // Pemisah antar list
+              const SizedBox(height: 24),
 
-              // LIST 2: TUGAS TERDEKAT (Semua Tugas Deadline Mendatang)
+              // LIST 2: TUGAS TERDEKAT
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
@@ -403,37 +383,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // Widget Kalender (Restyled: Minimalis & Elegan)
+  // Widget Kalender
   Widget _buildCalendar(List<core_model.Jadwal> jadwalList, List<core_model.Tugas> tugasList) {
     return TableCalendar(
       locale: 'id_ID',
-      // [UPDATE] Rentang tahun yang cukup lebar agar bisa swipe bulan
       firstDay: DateTime.utc(2020, 1, 1), 
       lastDay: DateTime.utc(2035, 12, 31),
       focusedDay: _focusedDay,
       calendarFormat: _calendarFormat,
       
-      // Menonaktifkan header default karena sudah membuat custom header di atas
       headerVisible: false, 
 
-      // Styling Minimalis
       daysOfWeekStyle: const DaysOfWeekStyle(
         weekdayStyle: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
         weekendStyle: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
       ),
       
       calendarStyle: CalendarStyle(
-        // Font Default
         defaultTextStyle: const TextStyle(color: Colors.white),
         weekendTextStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
         
-        // Tanggal Terpilih (Selected) -> Lingkaran Solid Biru
         selectedDecoration: const BoxDecoration(
           color: Colors.blueAccent,
           shape: BoxShape.circle,
         ),
         
-        // Hari Ini (Today) -> Outline Biru (Biar beda dengan selected)
         todayDecoration: BoxDecoration(
           color: Colors.transparent,
           shape: BoxShape.circle,
@@ -441,11 +415,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         todayTextStyle: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
         
-        // Hari di luar bulan (dimatikan visualnya agar bersih)
         outsideDaysVisible: false, 
       ),
 
-      // Logic Seleksi
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
       onDaySelected: (selectedDay, focusedDay) {
         if (!isSameDay(_selectedDay, selectedDay)) {
@@ -460,7 +432,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           setState(() => _calendarFormat = format);
         }
       },
-      // [FIX] Update _focusedDay saat swipe bulan
       onPageChanged: (focusedDay) {
         setState(() {
           _focusedDay = focusedDay;
@@ -469,7 +440,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       eventLoader: (day) => _getEventsForDay(day, jadwalList, tugasList),
 
-      // Marker Builder (Titik Penanda Tugas/Jadwal)
       calendarBuilders: CalendarBuilders(
         markerBuilder: (context, day, events) {
           if (events.isEmpty) return null;
@@ -478,14 +448,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           bool hasJadwal = events.any((e) => e is core_model.Jadwal);
 
           return Positioned(
-            bottom: 4, // Posisi marker
+            bottom: 4, 
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (hasJadwal)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                    width: 4, height: 4, // Marker lebih kecil & rapi
+                    width: 4, height: 4,
                     decoration: const BoxDecoration(color: Colors.lightBlueAccent, shape: BoxShape.circle),
                   ),
                 if (hasTugas)
@@ -502,7 +472,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // Widget List Agenda (Berdasarkan Tanggal Terpilih)
+  // Widget List Agenda
   Widget _buildAgendaList(
     AsyncValue<List<core_model.Jadwal>> asyncJadwal,
     AsyncValue<List<core_model.Tugas>> asyncTugas
@@ -536,12 +506,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     }
 
-    // Urutkan agenda
     events.sort((a, b) {
       DateTime timeA;
       if (a is core_model.Jadwal) {
-        // [FIX] Konstruksi DateTime dari tanggal jadwal + jam jadwal
-        // Karena jamMulai di DB mungkin tanggalnya dummy (2000-01-01), kita gabung manual
         timeA = DateTime(
           a.tanggal.year, a.tanggal.month, a.tanggal.day, 
           a.jamMulai.hour, a.jamMulai.minute
@@ -577,7 +544,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // Widget List Tugas Terdekat (Global)
+  // Widget List Tugas Terdekat
   Widget _buildUpcomingTasksList(AsyncValue<List<core_model.Tugas>> asyncTugas) {
     if (asyncTugas.isLoading) return const Center(child: CircularProgressIndicator());
     if (asyncTugas.hasError) return Text("Error: ${asyncTugas.error}");
@@ -585,15 +552,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final listTugas = asyncTugas.value ?? [];
     final now = DateTime.now();
 
-    // Filter: Tugas yang belum selesai & deadline masa depan
     final upcomingTasks = listTugas.where((t) {
       return t.status != 'Selesai' && t.dueAt.isAfter(now);
     }).toList();
 
-    // Sort: Deadline terdekat di atas
     upcomingTasks.sort((a, b) => a.dueAt.compareTo(b.dueAt));
-
-    // Ambil 5 tugas terdekat saja
     final topTasks = upcomingTasks.take(5).toList();
 
     if (topTasks.isEmpty) {
@@ -628,7 +591,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // --- Helper UI Components ---
 
   Widget _buildJadwalCard(core_model.Jadwal item) {
-    // [UPDATE] Gunakan getStatus() yang baru (berbasis Tanggal & Jam)
     final status = item.getStatus(DateTime.now());
     
     return GestureDetector(
@@ -679,10 +641,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       _StatusBadgeMini(status: status),
                     ],
                   ),
-                  // [BARU] Indikator Pertemuan Ke
+                  // [BARU] Indikator Judul (Fleksibel)
                   const SizedBox(height: 4),
                   Text(
-                    "Pertemuan ke-${item.pertemuanKe}",
+                    item.judul, // [FIX] Tampilkan judul, bukan pertemuanKe
                     style: TextStyle(color: Colors.grey[600], fontSize: 10),
                   ),
                 ],

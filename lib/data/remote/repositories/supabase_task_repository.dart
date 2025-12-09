@@ -67,8 +67,12 @@ class SupabaseTaskRepository implements TaskRepository {
           .where((j) => j.ownerId == uid && j.mataKuliahId == matkulId)
           .toList();
       
-      // [FIX] Sort berdasarkan TANGGAL, bukan hari string lagi
-      list.sort((a, b) => a.tanggal.compareTo(b.tanggal));
+      // [FIX] Sort berdasarkan TANGGAL dan JAM MULAI (Waktu nyata)
+      list.sort((a, b) {
+        final dateComp = a.tanggal.compareTo(b.tanggal);
+        if (dateComp != 0) return dateComp;
+        return a.jamMulai.compareTo(b.jamMulai);
+      });
       return list;
     });
   }
@@ -83,12 +87,16 @@ class SupabaseTaskRepository implements TaskRepository {
         .map((rows) {
            final list = rows.map(Jadwal.fromMap).toList();
            // [FIX] Sort tanggal global
-           list.sort((a, b) => a.tanggal.compareTo(b.tanggal));
+           list.sort((a, b) {
+             final dateComp = a.tanggal.compareTo(b.tanggal);
+             if (dateComp != 0) return dateComp;
+             return a.jamMulai.compareTo(b.jamMulai);
+           });
            return list;
         });
   }
 
-  // [IMPLEMENTASI INTI] Logic "Input Sekali, Generate Banyak"
+  // [IMPLEMENTASI INTI] Fully Controlled Naming
   @override
   Future<void> generateJadwalSemester({
     required String mataKuliahId,
@@ -97,6 +105,11 @@ class SupabaseTaskRepository implements TaskRepository {
     required TimeOfDay jamMulai,
     required TimeOfDay jamSelesai,
     required String ruangan,
+    
+    // [BARU] Parameter Kontrol Penuh
+    required bool useAutoTitle, 
+    required String customTitlePrefix, 
+    required int startNumber, 
   }) async {
     final uid = client.auth.currentUser!.id;
     final batchId = const Uuid().v4(); // ID Paket untuk 1 semester ini
@@ -105,14 +118,25 @@ class SupabaseTaskRepository implements TaskRepository {
     List<Map<String, dynamic>> batchData = [];
 
     // Konversi TimeOfDay ke String HH:mm:ss
-    // Kita pakai dummy date 2000-01-01, lalu ambil time part-nya
     final startT = _formatTimeOfDay(jamMulai);
     final endT = _formatTimeOfDay(jamSelesai);
 
     for (int i = 0; i < jumlahPertemuan; i++) {
       // Logic Mingguan: Tanggal Mulai + (i * 7 hari)
       final tanggalPertemuan = tanggalMulai.add(Duration(days: i * 7));
-      final pertemuanKe = i + 1;
+      
+      // Hitung Nomor Urut Manual berdasarkan Start Number
+      final currentNumber = startNumber + i;
+
+      // [LOGIKA PENAMAAN]
+      String finalTitle;
+      if (useAutoTitle) {
+        // Mode Seri: "Pertemuan ke-{currentNumber}"
+        finalTitle = "$customTitlePrefix$currentNumber";
+      } else {
+        // Mode Kustom Murni: "Responsi" (Semua sama)
+        finalTitle = customTitlePrefix;
+      }
 
       batchData.add({
         'id': const Uuid().v4(),
@@ -122,7 +146,12 @@ class SupabaseTaskRepository implements TaskRepository {
         
         // Simpan Date String (YYYY-MM-DD)
         'tanggal': tanggalPertemuan.toIso8601String().split('T')[0],
-        'pertemuan_ke': pertemuanKe,
+        
+        // [UPDATE] Simpan Judul yang sudah jadi
+        'judul': finalTitle,
+        // Kita simpan currentNumber sebagai legacy/metadata saja, bukan logika urutan
+        'pertemuan_ke': currentNumber, 
+        
         'status_pertemuan': 'Terjadwal',
 
         'jam_mulai': startT,
@@ -159,7 +188,7 @@ class SupabaseTaskRepository implements TaskRepository {
   // ============================================================
   //                            TUGAS
   // ============================================================
-  // (Bagian Tugas tidak berubah, tetapi tetap disertakan agar valid)
+  // (Bagian Tugas tidak berubah)
 
   @override
   Stream<List<Tugas>> watchTugasByMataKuliah(String matkulId) {
