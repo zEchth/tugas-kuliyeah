@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -7,8 +7,8 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/core/models/tugas.dart' as core_model;
 import 'package:tugas_kuliyeah/core/models/jadwal.dart' as core_model;
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:firebase_messaging/firebase_messaging.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 // import 'package:tugas_kuliyeah/features/mata_kuliah/mata_kuliah_detail_screen.dart'; // (Tetap mempertahankan import jika dibutuhkan di masa depan)
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -27,23 +27,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _saveFcmToken();
 
     initializeDateFormatting('id_ID', null);
     _selectedDay = _focusedDay;
-  }
-
-  Future<void> _saveFcmToken() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-
-    final token = await FirebaseMessaging.instance.getToken();
-    if (token == null) return;
-
-    await Supabase.instance.client.from('fcm_tokens').upsert({
-      'user_id': user.id,
-      'token': token,
-    });
   }
 
   // [BARU] Navigasi Bulan Mundur
@@ -870,8 +856,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: isUrgent
-                    ? Colors.redAccent.withValues(alpha: 0.1)
-                    : Colors.grey.withValues(alpha: 0.1),
+                    ? Colors.redAccent.withOpacity( 0.1)
+                    : Colors.grey.withOpacity( 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(

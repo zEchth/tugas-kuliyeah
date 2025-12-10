@@ -1018,6 +1018,7 @@ class _MataKuliahDetailScreenState
                                   final token = await repo.getFcmTokenByEmail(
                                     receiverEmail,
                                   );
+                                  debugPrint("TOKEN DARI DB: $token");
 
                                   if (token != null) {
                                     await repo.sendShareNotif(

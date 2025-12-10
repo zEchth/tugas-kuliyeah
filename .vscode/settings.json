@@ -1,6 +1,6 @@
 {
   "[typescript]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "cmake.sourceDirectory": "D:/1.Kuliah/sem5/Pemrograman-Mobile/test/tugas-kuliyeah/windows/runner",
   "deno.enablePaths": [

@@ -225,4 +225,35 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.cancelAll();
     debugPrint("All notifications cancelled.");
   }
+
+  Future<void> showNotification({
+    required String title,
+    required String body,
+  }) async {
+    if (kIsWeb) return;
+
+    const notificationDetails = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'channel_tugas_id',
+        'Reminder Tugas',
+        channelDescription: 'Notifikasi langsung dari FCM',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000, // ID unik
+      title,
+      body,
+      notificationDetails,
+    );
+  }
 }

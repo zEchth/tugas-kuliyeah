@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -16,7 +19,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final notificationService = NotificationService();
-  await notificationService.init();
+
+  if (!kIsWeb) {
+    await notificationService.init();
+  }
 
   // Perbaikan
   await dotenv.load(fileName: ".env");
@@ -32,10 +38,11 @@ void main() async {
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
 
-  await Firebase.initializeApp();
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+  }
 
-  final fcmToken = await FirebaseMessaging.instance.getToken();
-  print("FCM TOKEN: $fcmToken");
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   runApp(
     ProviderScope(
@@ -45,6 +52,14 @@ void main() async {
       ],
       child: const MyApp(),
     ),
+  );
+}
+
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  NotificationService().showNotification(
+    title: message.notification?.title ?? 'No Title',
+    body: message.notification?.body ?? 'No Body',
   );
 }
 
@@ -75,18 +90,44 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   Session? _session;
   bool _loading = true;
 
+  StreamSubscription<String>? _tokenSub;
+  late final StreamSubscription<AuthState> _authSub;
+
   @override
   void initState() {
     super.initState();
 
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      final notification = message.notification;
+      if (notification != null) {
+        ref
+            .read(notificationServiceProvider)
+            .showNotification(
+              title: notification.title ?? 'No Title',
+              body: notification.body ?? 'No Body',
+            );
+      }
+    });
+
     _session = Supabase.instance.client.auth.currentSession;
+
+    // LISTEN TOKEN REFRESH (WAJIB)
+    if (!kIsWeb) {
+      _tokenSub = FirebaseMessaging.instance.onTokenRefresh.listen(
+        saveFcmToken,
+      );
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() => _loading = false);
     });
 
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    // LISTEN AUTH CHANGE (WAJIB)
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (!mounted) return;
+
+      final newSession = data.session;
+      if (newSession != null && !kIsWeb) saveFcmToken();
 
       // reset SEMUA providers ketika user berganti
       ref.invalidate(allMataKuliahProvider);
@@ -95,9 +136,35 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       ref.invalidate(taskRepositoryProvider);
 
       setState(() {
-        _session = data.session;
+        _session = newSession;
+        _loading = false;
       });
     });
+
+    _loading = false;
+  }
+
+  Future<void> saveFcmToken([String? newToken]) async {
+    if (kIsWeb) return;
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final token = newToken ?? await FirebaseMessaging.instance.getToken();
+
+    if (token == null) return;
+
+    await Supabase.instance.client.from('fcm_tokens').upsert({
+      'user_id': user.id,
+      'token': token,
+    }, onConflict: 'user_id');
+  }
+
+  @override
+  void dispose() {
+    _tokenSub?.cancel();
+    _authSub.cancel();
+    super.dispose();
   }
 
   @override

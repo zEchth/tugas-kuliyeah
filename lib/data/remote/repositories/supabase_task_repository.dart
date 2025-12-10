@@ -722,9 +722,16 @@ class SupabaseTaskRepository implements TaskRepository {
     required String title,
     required String body,
   }) async {
-    await client.functions.invoke(
+    final res = await Supabase.instance.client.functions.invoke(
       'task-share-notify',
       body: {'token': token, 'title': title, 'body': body},
     );
+
+    debugPrint("FUNCTION STATUS: ${res.status}");
+    debugPrint("FUNCTION DATA: ${res.data}");
+
+    if (res.status != 200) {
+      throw Exception(res.data);
+    }
   }
 }

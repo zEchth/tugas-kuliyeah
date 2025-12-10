@@ -81,10 +81,18 @@ async function getAccessToken() {
 }
 
 
-serve(async (req: { json: () => PromiseLike<{ token: any; title: any; body: any; }> | { token: any; title: any; body: any; }; }) => {
+serve(async (req: Request) => {
   try {
     const { token, title, body } = await req.json();
     const accessToken = await getAccessToken();
+
+    const payload = {
+      message: {
+        token,
+        notification: { title, body },
+        android: { priority: "high" } // WAJIB
+      }
+    };
 
     const res = await fetch(
       `https://fcm.googleapis.com/v1/projects/${SA.project_id}/messages:send`,
@@ -94,17 +102,19 @@ serve(async (req: { json: () => PromiseLike<{ token: any; title: any; body: any;
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          message: { token, notification: { title, body } },
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
-    return new Response(await res.text(), { status: res.status });
+    const text = await res.text();
+
+    console.log("FCM STATUS:", res.status);
+    console.log("FCM RESPONSE:", text);
+
+    return new Response(text, { status: res.status });
+
   } catch (e) {
-    return new Response(
-      JSON.stringify({ error: e.message }),
-      { status: 500 }
-    );
+    console.error("EDGE ERROR:", e);
+    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
   }
 });
