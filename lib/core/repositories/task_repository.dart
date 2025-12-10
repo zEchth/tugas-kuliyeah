@@ -35,7 +35,7 @@ abstract class TaskRepository {
 
   // [MODIFIKASI] Update satu pertemuan spesifik (misal geser jadwal)
   Future<void> updateJadwal(core_model.Jadwal jadwal);
-  
+
   Future<void> deleteJadwal(String id);
 
   // ========================= TUGAS ========================
@@ -77,5 +77,13 @@ abstract class TaskRepository {
   Future<void> uploadAttachmentWeb({
     required String taskId,
     required PlatformFile file,
+  });
+
+  Future<String?> getFcmTokenByEmail(String email);
+
+  Future<void> sendShareNotif({
+    required String token,
+    required String title,
+    required String body,
   });
 }

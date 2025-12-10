@@ -1008,77 +1008,37 @@ class _MataKuliahDetailScreenState
                                 );
 
                                 try {
-                                  await ref
-                                      .read(taskRepositoryProvider)
-                                      .shareTugas(
-                                        tugasId: tugas.id,
-                                        receiverEmail: receiverEmail,
-                                      );
+                                  final repo = ref.read(taskRepositoryProvider);
 
-                                  Navigator.pop(context); // tutup loading
+                                  await repo.shareTugas(
+                                    tugasId: tugas.id,
+                                    receiverEmail: receiverEmail,
+                                  );
 
-                                  // SUCCESS SNACKBAR
+                                  final token = await repo.getFcmTokenByEmail(
+                                    receiverEmail,
+                                  );
+
+                                  if (token != null) {
+                                    await repo.sendShareNotif(
+                                      token: token,
+                                      title: 'Tugas Baru',
+                                      body: 'Kamu dapat tugas: ${tugas.title}',
+                                    );
+                                  }
+
+                                  Navigator.pop(context);
+
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      behavior: SnackBarBehavior.floating,
-                                      margin: const EdgeInsets.all(16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      backgroundColor: Colors.blueAccent,
-                                      content: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.check_circle,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Text(
-                                              "Tugas berhasil dikirim ke $receiverEmail",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      duration: const Duration(seconds: 2),
+                                      content: Text("Tugas berhasil dikirim"),
                                     ),
                                   );
                                 } catch (e) {
-                                  Navigator.pop(context); // tutup loading
-
-                                  // ERROR SNACKBAR MERAH
+                                  Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      behavior: SnackBarBehavior.floating,
-                                      margin: const EdgeInsets.all(16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      backgroundColor: Colors.redAccent,
-                                      content: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.error,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Text(
-                                              "Gagal mengirim tugas",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      duration: const Duration(seconds: 3),
+                                      content: Text("Gagal mengirim tugas"),
                                     ),
                                   );
                                 }

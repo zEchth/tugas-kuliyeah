@@ -690,4 +690,41 @@ class SupabaseTaskRepository implements TaskRepository {
         return 'application/octet-stream';
     }
   }
+
+  @override
+  Future<String?> getFcmTokenByEmail(String email) async {
+    // 1. Ambil user_id dari tabel user_emails
+    final user = await client
+        .from('user_emails')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+    if (user == null) return null;
+
+    final userId = user['id'];
+
+    // 2. Ambil token dari fcm_tokens
+    final res = await client
+        .from('fcm_tokens')
+        .select('token')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (res == null) return null;
+
+    return res['token'];
+  }
+
+  @override
+  Future<void> sendShareNotif({
+    required String token,
+    required String title,
+    required String body,
+  }) async {
+    await client.functions.invoke(
+      'task-share-notify',
+      body: {'token': token, 'title': title, 'body': body},
+    );
+  }
 }

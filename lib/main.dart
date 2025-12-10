@@ -8,6 +8,8 @@ import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/services/notification_service.dart';
 // [UPDATE] Import MainNavigationScreen
 import 'package:tugas_kuliyeah/main_navigation_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 void main() async {
   // Pastikan binding siap sebelum menjalankan APP
@@ -29,6 +31,11 @@ void main() async {
   }
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+
+  await Firebase.initializeApp();
+
+  final fcmToken = await FirebaseMessaging.instance.getToken();
+  print("FCM TOKEN: $fcmToken");
 
   runApp(
     ProviderScope(
@@ -98,7 +105,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    
+
     if (_session == null) {
       return LoginPage();
     }
