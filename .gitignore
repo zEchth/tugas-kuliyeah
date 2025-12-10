@@ -19,6 +19,7 @@ migrate_working_dir/
 .idea/
 
 android/app/google-services.json
+web/firebase-messaging-sw.js
 
 
 # The .vscode folder contains launch configuration and tasks you configure in
@@ -154,5 +155,4 @@ doc/api/
 .env.production
 .env.development
 
-web/firebase-messaging-sw.js
 # End of https://www.toptal.com/developers/gitignore/api/dart
