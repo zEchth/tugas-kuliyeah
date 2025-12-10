@@ -30,11 +30,9 @@ class SupabaseTaskRepository implements TaskRepository {
   int _generateId(String uuid) {
     try {
       final cleanUuid = uuid.replaceAll('-', '');
-      // Ambil 7 karakter terakhir
       final hexChunk = cleanUuid.substring(cleanUuid.length - 7);
       return int.parse(hexChunk, radix: 16);
     } catch (e) {
-      // Fallback jika format UUID aneh
       return uuid.hashCode;
     }
   }
@@ -42,7 +40,6 @@ class SupabaseTaskRepository implements TaskRepository {
   // ============================================================
   //             FITUR BARU: RESYNC NOTIFICATIONS
   // ============================================================
-  // Fungsi ini dipanggil saat App dibuka (MainNavigationScreen)
   Future<void> resyncLocalNotifications() async {
     try {
       final uid = client.auth.currentUser?.id;
@@ -51,7 +48,6 @@ class SupabaseTaskRepository implements TaskRepository {
       debugPrint("[SYNC] Memulai sinkronisasi notifikasi...");
 
       // 1. Bersihkan semua alarm lama (Reset state)
-      // Ini penting agar alarm dari jadwal yang sudah dihapus di perangkat lain ikut hilang
       await notificationService.cancelAllNotifications();
 
       // 2. Ambil data TUGAS yang BELUM selesai & deadline di masa depan
@@ -60,8 +56,8 @@ class SupabaseTaskRepository implements TaskRepository {
           .from('tugas')
           .select('*, mata_kuliah(nama_matkul)')
           .eq('owner_id', uid)
-          .neq('status', 'Selesai') // Abaikan yang selesai
-          .gt('due_at', now); // Hanya yang akan datang
+          .neq('status', 'Selesai') 
+          .gt('due_at', now); 
 
       final listTugas = (tugasData as List)
           .map((x) => Tugas.fromMap(x))
@@ -75,18 +71,18 @@ class SupabaseTaskRepository implements TaskRepository {
           title: "${t.type}: $matkulName",
           body: "${t.title} (Deadline!)",
           scheduledDate: t.dueAt,
+          zonaWaktu: t.zonaWaktu, // [UPDATE] Pass zona waktu
         );
       }
 
-      // 4. Ambil data JADWAL (Aktifkan untuk semua jadwal)
-      // Gunakan 'gte' (Greater Than or Equal) today agar jadwal hari ini yang belum lewat jamnya juga masuk
+      // 4. Ambil data JADWAL 
       final todayStr = DateTime.now().toIso8601String().split('T')[0];
       
       final jadwalData = await client
           .from('jadwal_kuliah')
           .select('*, mata_kuliah(nama_matkul)')
           .eq('owner_id', uid)
-          .gte('tanggal', todayStr) // Hanya ambil jadwal mulai hari ini ke depan
+          .gte('tanggal', todayStr) 
           .eq('status_pertemuan', 'Terjadwal'); 
 
       final listJadwal = (jadwalData as List)
@@ -113,6 +109,7 @@ class SupabaseTaskRepository implements TaskRepository {
             title: "Kelas: $matkulName",
             body: "Ruang: ${j.ruangan} | ${j.judul}",
             scheduledDate: jadwalDateTime,
+            zonaWaktu: j.zonaWaktu, // [UPDATE] Pass zona waktu
           );
           scheduledJadwalCount++;
         }
@@ -208,12 +205,11 @@ class SupabaseTaskRepository implements TaskRepository {
     required bool useAutoTitle,
     required String customTitlePrefix,
     required int startNumber,
+    required String zonaWaktu, // [UPDATE] Parameter baru
   }) async {
     final uid = client.auth.currentUser!.id;
     final batchId = const Uuid().v4();
 
-    // BERSIHKAN NOTIF JADWAL LAMA MATKUL INI SEBELUM INSERT BARU
-    // (Jika user mengulang generate, yang lama harus bersih)
     final oldJadwal = await client
         .from('jadwal_kuliah')
         .select('id')
@@ -225,7 +221,6 @@ class SupabaseTaskRepository implements TaskRepository {
 
     List<Map<String, dynamic>> batchData = [];
 
-    // [UPDATE] Ambil nama matkul untuk notifikasi
     final matkulRes = await client
         .from('mata_kuliah')
         .select('nama_matkul')
@@ -236,7 +231,6 @@ class SupabaseTaskRepository implements TaskRepository {
     final startT = _formatTimeOfDay(jamMulai);
     final endT = _formatTimeOfDay(jamSelesai);
 
-    // List temporary untuk scheduling notif SETELAH insert DB sukses
     List<Map<String, dynamic>> notifQueue = [];
 
     for (int i = 0; i < jumlahPertemuan; i++) {
@@ -264,6 +258,7 @@ class SupabaseTaskRepository implements TaskRepository {
         'jam_selesai': endT,
         'ruangan': ruangan,
         'created_at': DateTime.now().toIso8601String(),
+        'zona_waktu': zonaWaktu, // [UPDATE] Simpan zona waktu
       });
 
       final startDateTime = DateTime(
@@ -280,20 +275,20 @@ class SupabaseTaskRepository implements TaskRepository {
           'title': "Kelas: $matkulName",
           'body': "$finalTitle di $ruangan",
           'date': startDateTime,
+          'zona': zonaWaktu, // Queue perlu tau zona juga
         });
       }
     }
 
-    // Insert DB dulu (Atomic operation kalau bisa, tapi supabase-flutter batch insert sudah bagus)
     await client.from('jadwal_kuliah').insert(batchData);
 
-    // Baru schedule notif jika DB sukses
     for (final n in notifQueue) {
       await notificationService.scheduleTugasReminder(
         id: n['id'],
         title: n['title'],
         body: n['body'],
         scheduledDate: n['date'],
+        zonaWaktu: n['zona'], // [UPDATE]
       );
     }
   }
@@ -340,6 +335,7 @@ class SupabaseTaskRepository implements TaskRepository {
         title: "Kelas: $matkulName (Updated)",
         body: "${jadwal.judul} di ${jadwal.ruangan}",
         scheduledDate: startDateTime,
+        zonaWaktu: jadwal.zonaWaktu, // [UPDATE] Pass zona waktu dari objek Jadwal
       );
     }
   }
@@ -392,6 +388,7 @@ class SupabaseTaskRepository implements TaskRepository {
       title: "${tugas.type}: $matkulName",
       body: "${tugas.title} (Deadline!)",
       scheduledDate: tugas.dueAt,
+      zonaWaktu: tugas.zonaWaktu, // [UPDATE]
     );
   }
 
@@ -420,6 +417,7 @@ class SupabaseTaskRepository implements TaskRepository {
         title: "${tugas.type}: $matkulName",
         body: "${tugas.title} (Updated)",
         scheduledDate: tugas.dueAt,
+        zonaWaktu: tugas.zonaWaktu, // [UPDATE]
       );
     }
   }

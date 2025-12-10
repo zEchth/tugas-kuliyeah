@@ -31,6 +31,8 @@ abstract class TaskRepository {
     required bool useAutoTitle, // True = Series, False = Custom
     required String customTitlePrefix, // Teks custom atau "Pertemuan ke-"
     required int startNumber, // Angka mulai (User defined)
+    // [BARU] Zona Waktu
+    required String zonaWaktu,
   });
 
   // [MODIFIKASI] Update satu pertemuan spesifik (misal geser jadwal)

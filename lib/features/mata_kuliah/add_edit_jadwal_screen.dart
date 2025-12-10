@@ -37,6 +37,10 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
   late TextEditingController _customTitleC; // Untuk judul "UTS" atau "Pertemuan ke-"
   late TextEditingController _startNumberC; // Untuk angka mulai (2, 36, dll)
   
+  // [BARU] Variabel Zona Waktu
+  String _selectedZona = 'WITA';
+  final List<String> _zonaList = ['WIB', 'WITA', 'WIT'];
+
   // State Mode Penamaan
   // true = "Pertemuan ke-{N}", "Pertemuan ke-{N+1}"
   // false = "UTS", "UTS" (Custom text statis)
@@ -68,12 +72,13 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
         ? TimeOfDay.fromDateTime(widget.jadwal!.jamSelesai)
         : null;
         
-    // [BARU] Inisialisasi Judul & Angka
+    // [BARU] Inisialisasi Judul & Angka & Zona
     if (_isEditing) {
       // Jika edit single, anggap selalu Custom agar user bebas ubah teksnya
       _useAutoTitle = false;
       _customTitleC = TextEditingController(text: widget.jadwal!.judul);
       _startNumberC = TextEditingController(); // Tidak dipakai di mode edit single
+      _selectedZona = widget.jadwal!.zonaWaktu; // [BARU] Load zona waktu
     } else {
       // Mode Add Batch
       _useAutoTitle = true;
@@ -174,6 +179,7 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
           ),
           ruangan: _ruanganC.text,
           judul: _customTitleC.text, // Simpan judul apa adanya dari input
+          zonaWaktu: _selectedZona, // [BARU] Update zona waktu
         );
 
         await repo.updateJadwal(updatedJadwal);
@@ -203,6 +209,9 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
           useAutoTitle: _useAutoTitle,
           customTitlePrefix: _customTitleC.text, // "Pertemuan ke-" atau "UTS"
           startNumber: startNum, // Angka mulai yg ditentukan user
+          
+          // [BARU] Zona Waktu
+          zonaWaktu: _selectedZona,
         );
 
         if (mounted) {
@@ -389,10 +398,11 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
 
                 const SizedBox(height: 24),
                 
-                // --- BAGIAN JAM ---
+                // --- BAGIAN JAM & ZONA ---
                 Row(
                   children: [
                     Expanded(
+                      flex: 2,
                       child: ElevatedButton.icon(
                         onPressed: () => _pilihJam(true),
                         icon: const Icon(Icons.access_time),
@@ -406,8 +416,9 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
+                      flex: 2,
                       child: ElevatedButton.icon(
                         onPressed: () => _pilihJam(false),
                         icon: const Icon(Icons.access_time_filled),
@@ -423,6 +434,22 @@ class _AddEditJadwalScreenState extends ConsumerState<AddEditJadwalScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                
+                // [BARU] DROPDOWN ZONA WAKTU
+                DropdownButtonFormField<String>(
+                  value: _selectedZona,
+                  decoration: const InputDecoration(
+                    labelText: "Zona Waktu",
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.public),
+                  ),
+                  items: _zonaList.map((z) => DropdownMenuItem(value: z, child: Text(z))).toList(),
+                  onChanged: (val) {
+                     if (val != null) setState(() => _selectedZona = val);
+                  },
+                ),
+                
                 const SizedBox(height: 16),
                 
                 // --- BAGIAN RUANGAN ---

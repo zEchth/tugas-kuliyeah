@@ -1,3 +1,4 @@
+// lib/services/notification_service.dart
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
@@ -12,7 +13,9 @@ class NotificationService {
     if (kIsWeb) return;
 
     tz.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Asia/Makassar'));
+    
+    // [UPDATE] Hapus Hardcode Makassar. Biarkan mengikuti Local Device Time.
+    // tz.setLocalLocation(tz.getLocation('Asia/Makassar'));
 
     debugPrint("TZ ACTIVE: ${tz.local.name}");
     debugPrint("NOW TZ: ${tz.TZDateTime.now(tz.local)}");
@@ -96,31 +99,69 @@ class NotificationService {
     return await androidImplementation.canScheduleExactNotifications() ?? false;
   }
 
-  // === REMINDER TUGAS ===
+  // [BARU] Helper untuk mendapatkan Lokasi TZ berdasarkan String WIB/WITA/WIT
+  tz.Location _getLocation(String zonaWaktu) {
+    try {
+      switch (zonaWaktu.toUpperCase()) {
+        case 'WIB':
+          return tz.getLocation('Asia/Jakarta');
+        case 'WIT':
+          return tz.getLocation('Asia/Jayapura');
+        case 'WITA':
+        default:
+          return tz.getLocation('Asia/Makassar');
+      }
+    } catch (e) {
+      // Fallback jika database timezones belum diload sempurna atau nama salah
+      debugPrint("Error getting location for $zonaWaktu: $e");
+      return tz.local;
+    }
+  }
+
+  // === REMINDER TUGAS & JADWAL (Unified) ===
+  // [UPDATE] Menambahkan parameter zonaWaktu
   Future<void> scheduleTugasReminder({
     required int id,
     required String title,
     required String body,
     required DateTime scheduledDate,
+    String zonaWaktu = 'WITA', // Default backward compatibility
   }) async {
     if (kIsWeb) return;
 
-    // 2 jam sebelum deadline
+    // 2 jam sebelum deadline (Opsional, dinonaktifkan sementara agar sesuai request jam pas)
     // final notifTime = scheduledDate.subtract(const Duration(hours: 2));
-
-    // Jangan jadwalkan jika waktu sudah lewat
-    if (scheduledDate.isBefore(DateTime.now())) return;
 
     await flutterLocalNotificationsPlugin.cancel(id);
 
     final canExact = await _canUseExactAlarm();
+    final targetLocation = _getLocation(zonaWaktu);
+
+    // [LOGIKA PENTING] Konversi DateTime UI (Local Year/Month/Hour) ke Zona Target
+    // Kita gunakan constructor TZDateTime(location, ...) agar komponen waktu (Jam 7)
+    // tetap Jam 7 di zona tersebut, lalu library akan menghitung offset ke device time.
+    final tzScheduledDate = tz.TZDateTime(
+      targetLocation,
+      scheduledDate.year,
+      scheduledDate.month,
+      scheduledDate.day,
+      scheduledDate.hour,
+      scheduledDate.minute,
+    );
+
+    // Cek apakah waktu sudah lewat (dalam absolute time)
+    final nowInTarget = tz.TZDateTime.now(targetLocation);
+    if (tzScheduledDate.isBefore(nowInTarget)) {
+      // debugPrint("Waktu sudah lewat untuk notif ID $id. Skip.");
+      return; 
+    }
 
     try {
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id,
         title,
         body,
-        tz.TZDateTime.from(scheduledDate, tz.local),
+        tzScheduledDate, // Gunakan waktu yang sudah di-zone
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'channel_tugas_id',
@@ -144,75 +185,16 @@ class NotificationService {
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
-      debugPrint("Scheduled Notification ID: $id at $scheduledDate");
+      debugPrint("Scheduled Notif ID: $id at $tzScheduledDate ($zonaWaktu)");
     } catch (e) {
       debugPrint("Error scheduling notification: $e");
     }
   }
 
-  // === REMINDER JADWAL KULIAH ===
-  Future<void> scheduleJadwalKuliah({
-    required int id,
-    required String title,
-    required String body,
-    required int dayOfWeek, // 1 = Senin, 7 = Minggu
-    required int hour,
-    required int minute,
-  }) async {
-    if (kIsWeb) return;
-
-    final canExact = await _canUseExactAlarm();
-
-    try {
-      // final classTime = _nextInstanceOfDay(dayOfWeek, hour, minute);
-      // var notifTime = classTime.subtract(const Duration(hours: 1));
-
-      // // kalau gara-gara minus 1 jam jadi lewat, Notif akan muncul 5 detik kemudian
-      // if (notifTime.isBefore(tz.TZDateTime.now(tz.local))) {
-      //   notifTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5));
-      // }
-
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        _nextInstanceOfDay(dayOfWeek, hour, minute),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'channel_jadwal_id',
-            'Jadwal Kuliah',
-            channelDescription: 'Notifikasi jadwal kuliah mingguan',
-            importance: Importance.max,
-            priority: Priority.high,
-          ),
-        ),
-        androidScheduleMode: canExact
-            ? AndroidScheduleMode.exactAllowWhileIdle
-            : AndroidScheduleMode.inexact,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      );
-    } catch (e) {
-      debugPrint("Error scheduling jadwal: $e");
-    }
-  }
-
-  tz.TZDateTime _nextInstanceOfDay(int dow, int h, int m) {
-    final now = tz.TZDateTime.now(tz.local);
-    var result = tz.TZDateTime(tz.local, now.year, now.month, now.day, h, m);
-
-    // Loop sampai ketemu hari yang sesuai
-    while (result.weekday != dow) {
-      result = result.add(const Duration(days: 1));
-    }
-
-    // Jika waktu sudah lewat hari ini, tambahkan 1 minggu
-    if (result.isBefore(now)) {
-      result = result.add(const Duration(days: 7));
-    }
-    return result;
-  }
+  // [DEPRECATED / REMOVED] scheduleJadwalKuliah (Weekly Recurring)
+  // Kita ganti strategi: Jadwal kuliah sekarang dijadwalkan sebagai One-Time Alarm
+  // untuk setiap pertemuan (generated batch) agar support tanggal merah & libur lebih mudah.
+  // Logic penjadwalannya ada di Repository (looping setiap tanggal pertemuan).
 
   Future<void> cancelNotification(int id) async {
     if (kIsWeb) return;
