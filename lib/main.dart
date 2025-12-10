@@ -127,7 +127,14 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       if (!mounted) return;
 
       final newSession = data.session;
-      if (newSession != null && !kIsWeb) saveFcmToken();
+      
+      // [PERBAIKAN] Jika sesi hilang (User logout atau Token Expired)
+      if (newSession == null) {
+        // Pastikan notifikasi dibersihkan otomatis
+        ref.read(notificationServiceProvider).cancelAllNotifications();
+      } else {
+        if (!kIsWeb) saveFcmToken();
+      }
 
       // reset SEMUA providers ketika user berganti
       ref.invalidate(allMataKuliahProvider);
