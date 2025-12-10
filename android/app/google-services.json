@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "719080791030",
+    "project_id": "fcm-tasktracking",
+    "storage_bucket": "fcm-tasktracking.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:719080791030:android:e8bf57fd070de3fbc5c5d7",
+        "android_client_info": {
+          "package_name": "com.example.task_tracking"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYZi1WDgU3SNFtlS3JmlRarK27QfyjP1I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
