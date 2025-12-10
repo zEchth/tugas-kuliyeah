@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:timezone/timezone.dart';
+// import 'package:timezone/timezone.dart';
 import 'package:tugas_kuliyeah/core/providers.dart';
 import 'package:tugas_kuliyeah/features/tugas/inbox_shared_task_screen.dart';
 
@@ -106,24 +106,24 @@ class ProfileScreen extends ConsumerWidget {
           ),
 
           // Test Notif scheduled
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.notifications_active),
-            label: const Text("TEST NOTIF SEKARANG"),
-            onPressed: () async {
-              final service = ref.read(notificationServiceProvider);
+          // const SizedBox(height: 20),
+          // ElevatedButton.icon(
+          //   icon: const Icon(Icons.notifications_active),
+          //   label: const Text("TEST NOTIF SEKARANG"),
+          //   onPressed: () async {
+          //     final service = ref.read(notificationServiceProvider);
 
-              final now = DateTime.now().add(const Duration(seconds: 5));
+          //     final now = DateTime.now().add(const Duration(seconds: 5));
 
-              await service.scheduleTugasReminder(
-                id: 999999,
-                title: "TEST AMAN",
-                body: "Kalau ini muncul, sistem notif FIX",
-                scheduledDate: now,
-              );
-            },
-          ),
-          const SizedBox(height: 10),
+          //     await service.scheduleTugasReminder(
+          //       id: 999999,
+          //       title: "TEST AMAN",
+          //       body: "Kalau ini muncul, sistem notif FIX",
+          //       scheduledDate: now,
+          //     );
+          //   },
+          // ),
+          // const SizedBox(height: 10),
 
           const Divider(),
           const SizedBox(height: 20),

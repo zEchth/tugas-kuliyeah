@@ -13,7 +13,6 @@ class NotificationService {
 
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Makassar'));
-    
 
     debugPrint("TZ ACTIVE: ${tz.local.name}");
     debugPrint("NOW TZ: ${tz.TZDateTime.now(tz.local)}");
@@ -106,6 +105,9 @@ class NotificationService {
   }) async {
     if (kIsWeb) return;
 
+    // 2 jam sebelum deadline
+    // final notifTime = scheduledDate.subtract(const Duration(hours: 2));
+
     // Jangan jadwalkan jika waktu sudah lewat
     if (scheduledDate.isBefore(DateTime.now())) return;
 
@@ -149,59 +151,68 @@ class NotificationService {
   }
 
   // === REMINDER JADWAL KULIAH ===
-  // Future<void> scheduleJadwalKuliah({
-  //   required int id,
-  //   required String title,
-  //   required String body,
-  //   required int dayOfWeek, // 1 = Senin, 7 = Minggu
-  //   required int hour,
-  //   required int minute,
-  // }) async {
-  //   if (kIsWeb) return;
-  //   final canExact = await _canUseExactAlarm();
+  Future<void> scheduleJadwalKuliah({
+    required int id,
+    required String title,
+    required String body,
+    required int dayOfWeek, // 1 = Senin, 7 = Minggu
+    required int hour,
+    required int minute,
+  }) async {
+    if (kIsWeb) return;
 
-  //   try {
-  //     await flutterLocalNotificationsPlugin.zonedSchedule(
-  //       id,
-  //       title,
-  //       body,
-  //       _nextInstanceOfDay(dayOfWeek, hour, minute),
-  //       const NotificationDetails(
-  //         android: AndroidNotificationDetails(
-  //           'channel_jadwal_id',
-  //           'Jadwal Kuliah',
-  //           channelDescription: 'Notifikasi jadwal kuliah mingguan',
-  //           importance: Importance.max,
-  //           priority: Priority.high,
-  //         ),
-  //       ),
-  //       androidScheduleMode: canExact
-  //           ? AndroidScheduleMode.exactAllowWhileIdle
-  //           : AndroidScheduleMode.inexact,
-  //       uiLocalNotificationDateInterpretation:
-  //           UILocalNotificationDateInterpretation.absoluteTime,
-  //       matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-  //     );
-  //   } catch (e) {
-  //     debugPrint("Error scheduling jadwal: $e");
-  //   }
-  // }
+    final canExact = await _canUseExactAlarm();
 
-  // tz.TZDateTime _nextInstanceOfDay(int dow, int h, int m) {
-  //   final now = tz.TZDateTime.now(tz.local);
-  //   var result = tz.TZDateTime(tz.local, now.year, now.month, now.day, h, m);
+    try {
+      // final classTime = _nextInstanceOfDay(dayOfWeek, hour, minute);
+      // var notifTime = classTime.subtract(const Duration(hours: 1));
 
-  //   // Loop sampai ketemu hari yang sesuai
-  //   while (result.weekday != dow) {
-  //     result = result.add(const Duration(days: 1));
-  //   }
+      // // kalau gara-gara minus 1 jam jadi lewat, Notif akan muncul 5 detik kemudian
+      // if (notifTime.isBefore(tz.TZDateTime.now(tz.local))) {
+      //   notifTime = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5));
+      // }
 
-  //   // Jika waktu sudah lewat hari ini, tambahkan 1 minggu
-  //   if (result.isBefore(now)) {
-  //     result = result.add(const Duration(days: 7));
-  //   }
-  //   return result;
-  // }
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id,
+        title,
+        body,
+        _nextInstanceOfDay(dayOfWeek, hour, minute),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'channel_jadwal_id',
+            'Jadwal Kuliah',
+            channelDescription: 'Notifikasi jadwal kuliah mingguan',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
+        ),
+        androidScheduleMode: canExact
+            ? AndroidScheduleMode.exactAllowWhileIdle
+            : AndroidScheduleMode.inexact,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+    } catch (e) {
+      debugPrint("Error scheduling jadwal: $e");
+    }
+  }
+
+  tz.TZDateTime _nextInstanceOfDay(int dow, int h, int m) {
+    final now = tz.TZDateTime.now(tz.local);
+    var result = tz.TZDateTime(tz.local, now.year, now.month, now.day, h, m);
+
+    // Loop sampai ketemu hari yang sesuai
+    while (result.weekday != dow) {
+      result = result.add(const Duration(days: 1));
+    }
+
+    // Jika waktu sudah lewat hari ini, tambahkan 1 minggu
+    if (result.isBefore(now)) {
+      result = result.add(const Duration(days: 7));
+    }
+    return result;
+  }
 
   Future<void> cancelNotification(int id) async {
     if (kIsWeb) return;
