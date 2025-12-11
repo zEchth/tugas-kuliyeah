@@ -13,6 +13,10 @@ class Jadwal {
   final String? ruangan;
   final DateTime createdAt;
   final String mataKuliahId;
+  
+  // [BARU] Zona Waktu (WIB, WITA, WIT) - Default 'WITA'
+  final String zonaWaktu;
+  
   final String? mataKuliahName;
 
   Jadwal({
@@ -27,6 +31,7 @@ class Jadwal {
     required this.ruangan,
     required this.createdAt,
     required this.mataKuliahId,
+    this.zonaWaktu = 'WITA', // [BARU] Default ke WITA
     this.mataKuliahName,
   });
 
@@ -57,6 +62,10 @@ class Jadwal {
       ruangan: map['ruangan'],
       createdAt: DateTime.parse(map['created_at']),
       mataKuliahId: map['mata_kuliah_id'],
+      
+      // [BARU] Ambil zona waktu, default 'WITA' jika null
+      zonaWaktu: map['zona_waktu'] ?? 'WITA',
+      
       mataKuliahName: map['mata_kuliah'] != null 
           ? map['mata_kuliah']['nama_matkul'] 
           : null,
@@ -77,6 +86,7 @@ class Jadwal {
       'ruangan': ruangan,
       'created_at': createdAt.toIso8601String(),
       'mata_kuliah_id': mataKuliahId,
+      'zona_waktu': zonaWaktu, // [BARU] Simpan zona waktu
     };
   }
 
@@ -118,6 +128,7 @@ class Jadwal {
     String? ruangan,
     DateTime? createdAt,
     String? mataKuliahId,
+    String? zonaWaktu, // [BARU]
     String? mataKuliahName,
   }) {
     return Jadwal(
@@ -132,6 +143,7 @@ class Jadwal {
       ruangan: ruangan ?? this.ruangan,
       createdAt: createdAt ?? this.createdAt,
       mataKuliahId: mataKuliahId ?? this.mataKuliahId,
+      zonaWaktu: zonaWaktu ?? this.zonaWaktu,
       mataKuliahName: mataKuliahName ?? this.mataKuliahName,
     );
   }

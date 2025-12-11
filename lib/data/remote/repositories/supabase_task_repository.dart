@@ -23,40 +23,23 @@ class SupabaseTaskRepository implements TaskRepository {
 
   SupabaseTaskRepository(this.client, this.ref, this.notificationService);
 
-  // --- Helper: Generate Integer ID from String UUID ---
-  // LocalNotification butuh INT, Supabase pakai UUID String.
-  // Kita pakai hashCode. Ada risiko collision kecil, tapi cukup untuk tugas kuliah.
-  int _generateId(String id) {
-    return id.hashCode;
-  }
-
-  // --- Helper: Konversi Hari String ke Int ---
-  int _getDayInt(String hari) {
-    switch (hari.toLowerCase()) {
-      case 'senin':
-        return 1;
-      case 'selasa':
-        return 2;
-      case 'rabu':
-        return 3;
-      case 'kamis':
-        return 4;
-      case 'jumat':
-        return 5;
-      case 'sabtu':
-        return 6;
-      case 'minggu':
-        return 7;
-      default:
-        return 1;
+  // [PERBAIKAN POIN 2] ID Generator yang Lebih Aman (Deterministic)
+  // UUID Format: 550e8400-e29b-41d4-a716-446655440000
+  // Kita ambil 7 digit HEX terakhir agar muat di Signed 32-bit Int (Max 2,147,483,647)
+  // 7 digit hex max value = 268,435,455 (Sangat aman)
+  int _generateId(String uuid) {
+    try {
+      final cleanUuid = uuid.replaceAll('-', '');
+      final hexChunk = cleanUuid.substring(cleanUuid.length - 7);
+      return int.parse(hexChunk, radix: 16);
+    } catch (e) {
+      return uuid.hashCode;
     }
   }
 
   // ============================================================
   //             FITUR BARU: RESYNC NOTIFICATIONS
   // ============================================================
-  // Fungsi ini dipanggil saat App dibuka (MainNavigationScreen)
-  // Menjamin notifikasi di HP sesuai dengan data di Server.
   Future<void> resyncLocalNotifications() async {
     try {
       final uid = client.auth.currentUser?.id;
@@ -73,8 +56,8 @@ class SupabaseTaskRepository implements TaskRepository {
           .from('tugas')
           .select('*, mata_kuliah(nama_matkul)')
           .eq('owner_id', uid)
-          .neq('status', 'Selesai') // Abaikan yang selesai
-          .gt('due_at', now); // Hanya yang akan datang
+          .neq('status', 'Selesai') 
+          .gt('due_at', now); 
 
       final listTugas = (tugasData as List)
           .map((x) => Tugas.fromMap(x))
@@ -88,29 +71,28 @@ class SupabaseTaskRepository implements TaskRepository {
           title: "${t.type}: $matkulName",
           body: "${t.title} (Deadline!)",
           scheduledDate: t.dueAt,
+          zonaWaktu: t.zonaWaktu, // [UPDATE] Pass zona waktu
         );
       }
 
-      // 4. Ambil data JADWAL (Aktifkan untuk semua jadwal)
+      // 4. Ambil data JADWAL 
+      final todayStr = DateTime.now().toIso8601String().split('T')[0];
+      
       final jadwalData = await client
           .from('jadwal_kuliah')
           .select('*, mata_kuliah(nama_matkul)')
           .eq('owner_id', uid)
-          .eq('status_pertemuan', 'Terjadwal'); // Hanya yang aktif
+          .gte('tanggal', todayStr) 
+          .eq('status_pertemuan', 'Terjadwal'); 
 
       final listJadwal = (jadwalData as List)
           .map((x) => Jadwal.fromMap(x))
           .toList();
 
       // 5. Jadwalkan Ulang Jadwal
-      // PERHATIAN: Ini akan memasang alarm mingguan untuk setiap row jadwal.
-      // Jika jadwal digenerate 16 pertemuan, alarmnya akan redundant di hari yang sama.
-      // Optimasi: Kita ambil jadwal unik per hari per matkul saja.
-      // (Tapi untuk simplifikasi kode saat ini, kita pasang saja jadwal spesifik
-      //  menggunakan scheduleTugasReminder agar akurat per tanggal)
-
+      int scheduledJadwalCount = 0;
       for (final j in listJadwal) {
-        // Cek apakah jadwal ini di masa depan
+        // Cek apakah jadwal ini di masa depan (Tanggal + Jam)
         final jadwalDateTime = DateTime(
           j.tanggal.year,
           j.tanggal.month,
@@ -122,19 +104,19 @@ class SupabaseTaskRepository implements TaskRepository {
         if (jadwalDateTime.isAfter(DateTime.now())) {
           final matkulName = j.mataKuliahName ?? "Kuliah";
 
-          // Kita gunakan one-time reminder agar akurat sesuai tanggal (bukan weekly recurring)
-          // karena tabel jadwal_kuliah menyimpan tanggal spesifik.
           await notificationService.scheduleTugasReminder(
             id: _generateId(j.id),
             title: "Kelas: $matkulName",
             body: "Ruang: ${j.ruangan} | ${j.judul}",
             scheduledDate: jadwalDateTime,
+            zonaWaktu: j.zonaWaktu, // [UPDATE] Pass zona waktu
           );
+          scheduledJadwalCount++;
         }
       }
 
       debugPrint(
-        "[SYNC] Selesai. ${listTugas.length} Tugas & ${listJadwal.length} Jadwal dijadwalkan.",
+        "[SYNC] Selesai. ${listTugas.length} Tugas & $scheduledJadwalCount Jadwal dijadwalkan ulang.",
       );
     } catch (e) {
       debugPrint("[SYNC ERROR] Gagal sinkronisasi notifikasi: $e");
@@ -159,7 +141,6 @@ class SupabaseTaskRepository implements TaskRepository {
   @override
   Future<void> insertMataKuliah(MataKuliah mk) async {
     final uid = Supabase.instance.client.auth.currentUser!.id;
-
     await client.from('mata_kuliah').insert({...mk.toMap(), 'owner_id': uid});
   }
 
@@ -170,11 +151,6 @@ class SupabaseTaskRepository implements TaskRepository {
 
   @override
   Future<void> deleteMataKuliah(String id) async {
-    // Note: Menghapus Matkul akan cascade delete tugas & jadwal di DB (jika di-set cascade).
-    // Tapi notifikasi lokal tidak otomatis hilang.
-    // Idealnya kita query dulu ID tugas/jadwal anaknya lalu cancelNotif.
-    // Tapi demi performa, kita andalkan "resyncLocalNotifications" saat app restart,
-    // atau biarkan user melihat notifikasi hantu sekali (minor issue).
     await client.from('mata_kuliah').delete().eq('id', id);
   }
 
@@ -229,11 +205,11 @@ class SupabaseTaskRepository implements TaskRepository {
     required bool useAutoTitle,
     required String customTitlePrefix,
     required int startNumber,
+    required String zonaWaktu, // [UPDATE] Parameter baru
   }) async {
     final uid = client.auth.currentUser!.id;
     final batchId = const Uuid().v4();
 
-    // BERSIHKAN NOTIF JADWAL LAMA MATKUL INI
     final oldJadwal = await client
         .from('jadwal_kuliah')
         .select('id')
@@ -245,7 +221,6 @@ class SupabaseTaskRepository implements TaskRepository {
 
     List<Map<String, dynamic>> batchData = [];
 
-    // [UPDATE] Ambil nama matkul untuk notifikasi
     final matkulRes = await client
         .from('mata_kuliah')
         .select('nama_matkul')
@@ -256,17 +231,16 @@ class SupabaseTaskRepository implements TaskRepository {
     final startT = _formatTimeOfDay(jamMulai);
     final endT = _formatTimeOfDay(jamSelesai);
 
+    List<Map<String, dynamic>> notifQueue = [];
+
     for (int i = 0; i < jumlahPertemuan; i++) {
-      // Logic Mingguan: Tanggal Mulai + (i * 7 hari)
       final tanggalPertemuan = tanggalMulai.add(Duration(days: i * 7));
       final currentNumber = startNumber + i;
 
       String finalTitle;
       if (useAutoTitle) {
-        // Mode Seri: "Pertemuan ke-{currentNumber}"
         finalTitle = "$customTitlePrefix$currentNumber";
       } else {
-        // Mode Kustom Murni: "Responsi" (Semua sama)
         finalTitle = customTitlePrefix;
       }
 
@@ -284,9 +258,9 @@ class SupabaseTaskRepository implements TaskRepository {
         'jam_selesai': endT,
         'ruangan': ruangan,
         'created_at': DateTime.now().toIso8601String(),
+        'zona_waktu': zonaWaktu, // [UPDATE] Simpan zona waktu
       });
 
-      // [UPDATE] Jadwalkan Notifikasi Lokal Langsung
       final startDateTime = DateTime(
         tanggalPertemuan.year,
         tanggalPertemuan.month,
@@ -295,19 +269,28 @@ class SupabaseTaskRepository implements TaskRepository {
         jamMulai.minute,
       );
 
-      // Hanya jadwalkan jika di masa depan
       if (startDateTime.isAfter(DateTime.now())) {
-        await notificationService.scheduleTugasReminder(
-          id: _generateId(newId),
-          title: "Kelas: $matkulName",
-          body: "$finalTitle di $ruangan",
-          scheduledDate: startDateTime,
-        );
+        notifQueue.add({
+          'id': _generateId(newId),
+          'title': "Kelas: $matkulName",
+          'body': "$finalTitle di $ruangan",
+          'date': startDateTime,
+          'zona': zonaWaktu, // Queue perlu tau zona juga
+        });
       }
     }
 
     await client.from('jadwal_kuliah').insert(batchData);
-    await resyncLocalNotifications();
+
+    for (final n in notifQueue) {
+      await notificationService.scheduleTugasReminder(
+        id: n['id'],
+        title: n['title'],
+        body: n['body'],
+        scheduledDate: n['date'],
+        zonaWaktu: n['zona'], // [UPDATE]
+      );
+    }
   }
 
   String _formatTimeOfDay(TimeOfDay t) {
@@ -332,7 +315,6 @@ class SupabaseTaskRepository implements TaskRepository {
       jadwal.jamMulai.minute,
     );
 
-    // Ambil nama matkul (karena di object jadwal mungkin null jika belum di-join)
     String matkulName = "Kuliah";
     if (jadwal.mataKuliahName != null) {
       matkulName = jadwal.mataKuliahName!;
@@ -353,6 +335,7 @@ class SupabaseTaskRepository implements TaskRepository {
         title: "Kelas: $matkulName (Updated)",
         body: "${jadwal.judul} di ${jadwal.ruangan}",
         scheduledDate: startDateTime,
+        zonaWaktu: jadwal.zonaWaktu, // [UPDATE] Pass zona waktu dari objek Jadwal
       );
     }
   }
@@ -360,7 +343,6 @@ class SupabaseTaskRepository implements TaskRepository {
   @override
   Future<void> deleteJadwal(String id) async {
     await client.from('jadwal_kuliah').delete().eq('id', id);
-    // [UPDATE] Hapus Notifikasi
     await notificationService.cancelNotification(_generateId(id));
   }
 
@@ -394,7 +376,6 @@ class SupabaseTaskRepository implements TaskRepository {
     await client.from('tugas').insert({...tugas.toMap(), 'owner_id': uid});
 
     // [UPDATE] Jadwalkan Notifikasi
-    // Perlu ambil nama matkul dulu
     final res = await client
         .from('mata_kuliah')
         .select('nama_matkul')
@@ -407,6 +388,7 @@ class SupabaseTaskRepository implements TaskRepository {
       title: "${tugas.type}: $matkulName",
       body: "${tugas.title} (Deadline!)",
       scheduledDate: tugas.dueAt,
+      zonaWaktu: tugas.zonaWaktu, // [UPDATE]
     );
   }
 
@@ -418,7 +400,6 @@ class SupabaseTaskRepository implements TaskRepository {
     await notificationService.cancelNotification(_generateId(tugas.id));
 
     if (tugas.status != 'Selesai' && tugas.dueAt.isAfter(DateTime.now())) {
-      // Perlu ambil nama matkul (fetch ulang atau pakai yang ada)
       String matkulName = "Tugas";
       if (tugas.mataKuliahName != null) {
         matkulName = tugas.mataKuliahName!;
@@ -436,6 +417,7 @@ class SupabaseTaskRepository implements TaskRepository {
         title: "${tugas.type}: $matkulName",
         body: "${tugas.title} (Updated)",
         scheduledDate: tugas.dueAt,
+        zonaWaktu: tugas.zonaWaktu, // [UPDATE]
       );
     }
   }
@@ -443,12 +425,11 @@ class SupabaseTaskRepository implements TaskRepository {
   @override
   Future<void> deleteTugas(String id) async {
     await client.from('tugas').delete().eq('id', id);
-    // [UPDATE] Hapus Notifikasi
     await notificationService.cancelNotification(_generateId(id));
   }
 
   // ============================================================
-  //                         SHARE TUGAS
+  //                         SHARE TUGAS (Sama seperti sebelumnya)
   // ============================================================
 
   @override
@@ -546,21 +527,12 @@ class SupabaseTaskRepository implements TaskRepository {
     required String shareId,
     required String receiverMatkulId,
   }) async {
-    // RPC ini akan meng-copy tugas.
-    // Tugas baru akan muncul di tabel 'tugas' milik receiver.
-    // Karena kita pakai 'StreamProvider' untuk list tugas,
-    // UI akan update otomatis.
-    // [NOTE] Untuk notifikasi: Tugas baru ini belum punya alarm lokal.
-    // Solusi: Resync saat refresh / buka app, atau kita bisa trigger manual disini
-    // tapi agak tricky karena kita tidak tahu ID tugas baru yang dihasilkan RPC.
-    // Cara terbaik: Panggil resyncLocalNotifications() setelah sukses accept.
-
     final resp = await client.rpc(
       'accept_shared_task',
       params: {'share_id': shareId, 'target_mata_kuliah': receiverMatkulId},
     );
 
-    // Trigger Resync agar tugas baru terpasang alarmnya
+    // [PENTING] Resync notifikasi karena tugas baru belum punya alarm lokal
     await resyncLocalNotifications();
 
     return resp as String;

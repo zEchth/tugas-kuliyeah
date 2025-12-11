@@ -157,9 +157,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Icons.calendar_today,
                 DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(jadwal.tanggal),
               ),
+              // [UPDATE] Tampilkan Zona Waktu di Detail
               _buildDetailRow(
                 Icons.access_time,
-                "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)}",
+                "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)} ${jadwal.zonaWaktu}",
               ),
               _buildDetailRow(Icons.location_on, jadwal.ruangan ?? "-"),
 
@@ -256,8 +257,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   const Icon(Icons.timer, color: Colors.redAccent),
                   const SizedBox(width: 8),
+                  // [UPDATE] Tampilkan Zona Waktu di Detail Tugas
                   Text(
-                    "Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)}",
+                    "Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)} ${tugas.zonaWaktu}",
                   ),
                 ],
               ),
@@ -774,9 +776,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    "Mulai",
-                    style: TextStyle(fontSize: 9, color: Colors.grey),
+                  // [UPDATE] Menampilkan Zona Waktu di sini, bukan sekadar teks "Mulai"
+                  Text(
+                    item.zonaWaktu, 
+                    style: const TextStyle(fontSize: 9, color: Colors.grey),
                   ),
                 ],
               ),
@@ -862,10 +865,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               child: Column(
                 children: [
+                  // [UPDATE] Jam Deadline + Zona
                   Text(
-                    DateFormat('HH:mm').format(item.dueAt),
+                    "${DateFormat('HH:mm').format(item.dueAt)} ${item.zonaWaktu}",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
+                      fontSize: 12, // Kecilin dikit biar muat
                       color: isUrgent ? Colors.redAccent : Colors.white,
                     ),
                   ),

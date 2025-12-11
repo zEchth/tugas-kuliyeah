@@ -14,6 +14,9 @@ class Tugas {
   // [BARU] Status Pengerjaan
   final String status;
 
+  // [BARU] Zona Waktu (WIB, WITA, WIT) - Default 'WITA' untuk backward compatibility
+  final String zonaWaktu;
+
   // [BARU] Nama Mata Kuliah (Hasil Join/Lookup) - Tidak disimpan di tabel tugas
   final String? mataKuliahName;
 
@@ -28,6 +31,7 @@ class Tugas {
     this.note,
     // this.attachmentPath,
     this.status = 'Belum Dikerjakan', // Default value
+    this.zonaWaktu = 'WITA', // [BARU] Default ke WITA
     this.mataKuliahName,
   });
 
@@ -43,7 +47,10 @@ class Tugas {
       mataKuliahId: map['mata_kuliah_id'],
       // attachmentPath: map['attachment_path'],
       // Ambil status, default ke 'Belum Dikerjakan' jika null (safety)
-      status: map['status'] ?? 'Belum Dikerjakan', 
+      status: map['status'] ?? 'Belum Dikerjakan',
+      
+      // [BARU] Ambil zona waktu, default 'WITA' jika null (untuk data lama)
+      zonaWaktu: map['zona_waktu'] ?? 'WITA',
       
       // Jika kita melakukan join query di Supabase (.select('*, mata_kuliah(nama_matkul)'))
       // Data akan ada di map['mata_kuliah']['nama_matkul']
@@ -65,6 +72,7 @@ class Tugas {
       'mata_kuliah_id': mataKuliahId,
       // 'attachment_path': attachmentPath, 
       'status': status, // Kirim status ke DB
+      'zona_waktu': zonaWaktu, // [BARU] Kirim zona waktu
     };
   }
   
@@ -79,6 +87,7 @@ class Tugas {
     DateTime? createdAt,
     String? mataKuliahId,
     String? status,
+    String? zonaWaktu, // [BARU]
     String? mataKuliahName,
   }) {
     return Tugas(
@@ -91,6 +100,7 @@ class Tugas {
       createdAt: createdAt ?? this.createdAt,
       mataKuliahId: mataKuliahId ?? this.mataKuliahId,
       status: status ?? this.status,
+      zonaWaktu: zonaWaktu ?? this.zonaWaktu,
       mataKuliahName: mataKuliahName ?? this.mataKuliahName,
     );
   }

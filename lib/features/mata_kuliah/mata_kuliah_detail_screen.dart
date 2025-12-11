@@ -185,9 +185,10 @@ class _MataKuliahDetailScreenState
                 Icons.calendar_today,
                 DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(jadwal.tanggal),
               ),
+              // [UPDATE] Tampilkan Zona Waktu di detail
               _buildDetailRow(
                 Icons.access_time,
-                "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)}",
+                "${DateFormat('HH:mm').format(jadwal.jamMulai)} - ${DateFormat('HH:mm').format(jadwal.jamSelesai)} ${jadwal.zonaWaktu}",
               ),
               _buildDetailRow(
                 Icons.location_on,
@@ -377,8 +378,9 @@ class _MataKuliahDetailScreenState
                           color: Colors.grey,
                         ),
                         const SizedBox(width: 8),
+                        // [UPDATE] Tampilkan Zona Waktu
                         Text(
-                          "Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)}",
+                          "Deadline: ${DateFormat('dd MMM yyyy, HH:mm').format(tugas.dueAt)} ${tugas.zonaWaktu}",
                         ),
                       ],
                     ),
@@ -713,8 +715,9 @@ class _MataKuliahDetailScreenState
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
+                                          // [UPDATE] Tampilkan Zona Waktu di samping jam
                                           Text(
-                                            "$jamMulai - $jamSelesai",
+                                            "$jamMulai - $jamSelesai ${jadwal.zonaWaktu}",
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
@@ -930,10 +933,9 @@ class _MataKuliahDetailScreenState
                                           : Colors.grey,
                                     ),
                                     const SizedBox(width: 4),
+                                    // [UPDATE] Tampilkan Zona Waktu di list
                                     Text(
-                                      DateFormat(
-                                        'dd MMM, HH:mm',
-                                      ).format(tugas.dueAt),
+                                      "${DateFormat('dd MMM, HH:mm').format(tugas.dueAt)} ${tugas.zonaWaktu}",
                                       style: TextStyle(
                                         color: isUrgent
                                             ? Colors.redAccent

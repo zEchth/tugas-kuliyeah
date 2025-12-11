@@ -28,6 +28,10 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
   String? _selectedJenis;
   DateTime? _dueAt;
 
+  // [BARU] Variabel Zona Waktu
+  String _selectedZona = 'WITA'; // Default value
+  final List<String> _zonaList = ['WIB', 'WITA', 'WIT'];
+
   List<String> _attachmentPathList = [];
   List<PlatformFile> _webFiles = [];
 
@@ -47,6 +51,11 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
     _selectedJenis = _isEditing ? widget.tugas!.type : null;
     _dueAt = _isEditing ? widget.tugas!.dueAt : null;
     // _attachmentPath = _isEditing ? widget.tugas!.attachmentPath : null;
+
+    // [BARU] Init Zona Waktu
+    if (_isEditing) {
+      _selectedZona = widget.tugas!.zonaWaktu;
+    }
   }
 
   @override
@@ -141,6 +150,7 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
       createdAt: _isEditing ? widget.tugas!.createdAt : DateTime.now(),
       mataKuliahId: widget.mataKuliahId,
       // attachmentPath: _attachmentPath,
+      zonaWaktu: _selectedZona, // [BARU] Simpan zona waktu yang dipilih
     );
 
     try {
@@ -216,14 +226,46 @@ class _AddEditTugasScreenState extends ConsumerState<AddEditTugasScreen> {
               ),
               SizedBox(height: 16),
 
-              ElevatedButton.icon(
-                icon: Icon(Icons.calendar_today),
-                label: Text(
-                  _dueAt == null
-                      ? "Pilih Tenggat Waktu"
-                      : DateFormat("dd MMM yyyy, HH:mm").format(_dueAt!),
-                ),
-                onPressed: _pickDeadline,
+              // [BARU] Input Tenggat Waktu & Zona Waktu
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      icon: Icon(Icons.calendar_today),
+                      label: Text(
+                        _dueAt == null
+                            ? "Pilih Tenggat Waktu"
+                            : DateFormat("dd MMM yyyy, HH:mm").format(_dueAt!),
+                      ),
+                      onPressed: _pickDeadline,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    flex: 1,
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedZona,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(),
+                        labelText: "Zona",
+                      ),
+                      items: _zonaList.map((z) {
+                        return DropdownMenuItem(value: z, child: Text(z));
+                      }).toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _selectedZona = v);
+                      },
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: 16),
 
