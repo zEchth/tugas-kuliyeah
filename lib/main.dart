@@ -118,9 +118,11 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
     // LISTEN TOKEN REFRESH (WAJIB)
     if (!kIsWeb) {
-      _tokenSub = FirebaseMessaging.instance.onTokenRefresh.listen(
-        fcmService.saveFcmToken,
-      );
+      _tokenSub = FirebaseMessaging.instance.onTokenRefresh.listen((token) {
+        if (WidgetsBinding.instance != null) {
+          fcmService.saveFcmToken(token);
+        }
+      });
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -128,18 +130,22 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     });
 
     // LISTEN AUTH CHANGE (WAJIB)
-    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((
+      data,
+    ) async {
       if (!mounted) return;
 
       final newSession = data.session;
 
-      
       // [PERBAIKAN] Jika sesi hilang (User logout atau Token Expired)
-      if (newSession == null) {
-        // Pastikan notifikasi dibersihkan otomatis
+      if (data.event == AuthChangeEvent.signedOut) {
         ref.read(notificationServiceProvider).cancelAllNotifications();
-      } else {
-        if (!kIsWeb) fcmService.saveFcmToken();
+      }
+
+      if (data.event == AuthChangeEvent.signedIn) {
+        Future.microtask(() {
+          fcmService.saveFcmToken();
+        });
       }
 
       // reset SEMUA providers ketika user berganti
