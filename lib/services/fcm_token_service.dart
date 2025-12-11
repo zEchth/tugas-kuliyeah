@@ -10,13 +10,13 @@ class FcmTokenService {
 
     // CEGAT BACKGROUND ISOLATE
     if (SchedulerBinding.instance == null || WidgetsBinding.instance == null) {
-      print("BLOCKED → saveFcmToken dipanggil di BACKGROUND ISOLATE");
+      // print("BLOCKED → saveFcmToken dipanggil di BACKGROUND ISOLATE");
       return;
     }
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      print("BLOCKED → USER NULL");
+      // print("BLOCKED → USER NULL");
       return;
     }
 
