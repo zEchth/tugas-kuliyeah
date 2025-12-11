@@ -13,6 +13,7 @@ import 'package:tugas_kuliyeah/services/notification_service.dart';
 import 'package:tugas_kuliyeah/main_navigation_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:tugas_kuliyeah/services/fcm_token_service.dart';
 
 void main() async {
   // Pastikan binding siap sebelum menjalankan APP
@@ -93,9 +94,13 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   StreamSubscription<String>? _tokenSub;
   late final StreamSubscription<AuthState> _authSub;
 
+  late final FcmTokenService fcmService;
+
   @override
   void initState() {
     super.initState();
+
+    fcmService = FcmTokenService();
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
@@ -114,7 +119,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     // LISTEN TOKEN REFRESH (WAJIB)
     if (!kIsWeb) {
       _tokenSub = FirebaseMessaging.instance.onTokenRefresh.listen(
-        saveFcmToken,
+        fcmService.saveFcmToken,
       );
     }
 
@@ -127,7 +132,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       if (!mounted) return;
 
       final newSession = data.session;
-      if (newSession != null && !kIsWeb) saveFcmToken();
+
+      if (newSession != null && !kIsWeb) {
+        fcmService.saveFcmToken();
+      }
 
       // reset SEMUA providers ketika user berganti
       ref.invalidate(allMataKuliahProvider);
@@ -142,22 +150,6 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     });
 
     _loading = false;
-  }
-
-  Future<void> saveFcmToken([String? newToken]) async {
-    if (kIsWeb) return;
-
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-
-    final token = newToken ?? await FirebaseMessaging.instance.getToken();
-
-    if (token == null) return;
-
-    await Supabase.instance.client.from('fcm_tokens').upsert({
-      'user_id': user.id,
-      'token': token,
-    }, onConflict: 'user_id');
   }
 
   @override
